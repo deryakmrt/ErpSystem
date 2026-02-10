@@ -1,17 +1,172 @@
 {
   "format": 1,
   "restore": {
-    "D:\\GitHub\\ErpSystem\\ErpSystem\\src\\ErpSystem.Api\\ErpSystem.Api.csproj": {}
+    "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Api\\ErpSystem.Api.csproj": {}
   },
   "projects": {
-    "D:\\GitHub\\ErpSystem\\ErpSystem\\src\\ErpSystem.Api\\ErpSystem.Api.csproj": {
+    "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Api\\ErpSystem.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\GitHub\\ErpSystem\\ErpSystem\\src\\ErpSystem.Api\\ErpSystem.Api.csproj",
+        "projectUniqueName": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Api\\ErpSystem.Api.csproj",
         "projectName": "ErpSystem.Api",
-        "projectPath": "D:\\GitHub\\ErpSystem\\ErpSystem\\src\\ErpSystem.Api\\ErpSystem.Api.csproj",
+        "projectPath": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Api\\ErpSystem.Api.csproj",
         "packagesPath": "C:\\Users\\Derya\\.nuget\\packages\\",
-        "outputPath": "D:\\GitHub\\ErpSystem\\ErpSystem\\src\\ErpSystem.Api\\obj\\",
+        "outputPath": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Api\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\Derya\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {
+              "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Application\\ErpSystem.Application.csproj": {
+                "projectPath": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Application\\ErpSystem.Application.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "dependencies": {
+            "Microsoft.AspNetCore.OpenApi": {
+              "target": "Package",
+              "version": "[9.0.5, )"
+            },
+            "Serilog.AspNetCore": {
+              "target": "Package",
+              "version": "[10.0.0, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[10.1.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Application\\ErpSystem.Application.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Application\\ErpSystem.Application.csproj",
+        "projectName": "ErpSystem.Application",
+        "projectPath": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Application\\ErpSystem.Application.csproj",
+        "packagesPath": "C:\\Users\\Derya\\.nuget\\packages\\",
+        "outputPath": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Application\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\Derya\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {
+              "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Domain\\ErpSystem.Domain.csproj": {
+                "projectPath": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Domain\\ErpSystem.Domain.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Domain\\ErpSystem.Domain.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Domain\\ErpSystem.Domain.csproj",
+        "projectName": "ErpSystem.Domain",
+        "projectPath": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Domain\\ErpSystem.Domain.csproj",
+        "packagesPath": "C:\\Users\\Derya\\.nuget\\packages\\",
+        "outputPath": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -49,12 +204,6 @@
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
-          "dependencies": {
-            "Microsoft.AspNetCore.OpenApi": {
-              "target": "Package",
-              "version": "[9.0.5, )"
-            }
-          },
           "imports": [
             "net461",
             "net462",
@@ -67,9 +216,6 @@
           "assetTargetFallback": true,
           "warn": true,
           "frameworkReferences": {
-            "Microsoft.AspNetCore.App": {
-              "privateAssets": "none"
-            },
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
