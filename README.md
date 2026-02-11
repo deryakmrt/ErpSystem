@@ -1,6 +1,21 @@
-# ERP System - Modern Enterprise Resource Planning
+<div align="center">
+  <a href="https://github.com/deryakmrt/ErpSystem">
+    <img src="assets/deck-logo.svg" alt="DECK ERP Logo" width="300">
+  </a>
 
-🚀 Modern, cloud-native ERP sistemi - ASP.NET Core 8, PostgreSQL, Docker
+  <h2>⚓ DECK ERP</h2>
+  <p>
+    <b>Modern, Cloud-Native Enterprise Resource Planning System</b>
+  </p>
+  
+  <p>
+    <img src="https://img.shields.io/badge/.NET_8-512BD4?style=flat-square&logo=dotnet&logoColor=white" />
+    <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" />
+    <img src="https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white" />
+  </p>
+  
+  <br>
+</div>
 
 ## Özellikler
 
