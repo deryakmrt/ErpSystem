@@ -1491,6 +1491,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v9.0",
         "dependencies": {
+          "ErpSystem.Application": "1.0.0",
           "ErpSystem.Domain": "1.0.0",
           "Microsoft.EntityFrameworkCore": "9.0.0",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "9.0.0"

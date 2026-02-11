@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ErpSystem.Infrastructure.Data;
+using ErpSystem.Application.Interfaces;
+using ErpSystem.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,9 @@ builder.Services.AddSwaggerGen();
 // PostgreSQL Database Connection
 builder.Services.AddDbContext<ErpDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Repository Registration
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
 var app = builder.Build();
 

@@ -275,6 +275,9 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
+              "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Application\\ErpSystem.Application.csproj": {
+                "projectPath": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Application\\ErpSystem.Application.csproj"
+              },
               "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Domain\\ErpSystem.Domain.csproj": {
                 "projectPath": "D:\\GitHub\\ErpSystem\\src\\ErpSystem.Domain\\ErpSystem.Domain.csproj"
               }
