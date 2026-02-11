@@ -74,42 +74,7 @@ ErpSystem/
 - [ ] Kubernetes deployment
 - [ ] CI/CD Pipeline
 
-## Lisans
-
-MIT License
-```
-
 ---
 
-## ⚡ İlk Hafta Hedefler
 
-### **Gün 1-2: Setup**
-- ✅ Proje yapısını oluştur
-- ✅ Docker Compose'u çalıştır
-- ✅ Git repository'e push et
-
-### **Gün 3-4: Database & Entities**
-- ✅ Domain entities (Order, OrderItem, Customer, Product)
-- ✅ DbContext oluştur
-- ✅ Migration çalıştır
-
-### **Gün 5-7: İlk API Endpoint**
-- ✅ GET /api/orders
-- ✅ POST /api/orders
-- ✅ Swagger'da test et
-
----
-
-## 🎯 Claude'a Yazacağın İkinci Prompt (Proje kurduktan sonra)
-```
-Proje yapısını oluşturdum. Şimdi Order Management için:
-
-1. Domain/Entities klasöründe Order, OrderItem, Customer, Product entity'lerini oluştur
-2. Infrastructure/Data klasöründe ApplicationDbContext oluştur
-3. İlk migration kodlarını hazırla
-4. API'de OrdersController oluştur (CRUD endpoints)
-5. Application layer'da OrderService ekle
-6. DTO'ları (Data Transfer Objects) hazırla
-
-Clean Architecture ve best practices'e uygun olsun.
 
