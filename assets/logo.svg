@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="shipHull" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#1e293b"/><stop offset="100%" stop-color="#334155"/></linearGradient>
+    <linearGradient id="blueBox" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#0284c7"/></linearGradient>
+    <linearGradient id="cyanBox" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#0891b2"/></linearGradient>
+  </defs>
+  
+  <g transform="translate(56, 80) scale(2.5)">
+    <path d="M10 100 L130 100 L160 80 L10 80 Z" fill="url(#shipHull)" />
+    <path d="M10 100 L30 130 L140 130 L130 100 Z" fill="#0f172a" />
+    
+    <rect x="25" y="45" width="40" height="35" rx="2" fill="url(#blueBox)" stroke="white" stroke-width="1"/> <rect x="70" y="30" width="40" height="50" rx="2" fill="url(#cyanBox)" stroke="white" stroke-width="1"/>  <rect x="115" y="55" width="35" height="25" rx="2" fill="url(#blueBox)" stroke="white" stroke-width="1"/> <rect x="10" y="20" width="15" height="110" rx="2" fill="#0f172a" />
+  </g>
+</svg>
