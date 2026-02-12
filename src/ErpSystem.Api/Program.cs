@@ -10,6 +10,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// CORS ayarı - React frontend için
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp",
+        builder => builder
+            .WithOrigins("http://localhost:3000") // React default port
+            .AllowAnyMethod()
+            .AllowAnyHeader());
+});
+
 // PostgreSQL Database Connection
 builder.Services.AddDbContext<ErpDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -46,6 +56,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// CORS kullan
+app.UseCors("AllowReactApp");
 
 // Map Controllers
 app.MapControllers();
