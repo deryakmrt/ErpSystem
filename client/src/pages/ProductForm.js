@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createProduct, updateProduct, getProductById } from '../services/productService';
+import SkuBuilder from '../components/SkuBuilder';
 import './ProductForm.css';
 
 const ProductForm = () => {
@@ -9,14 +10,16 @@ const ProductForm = () => {
   const isEditMode = Boolean(id);
 
   const [formData, setFormData] = useState({
-    code: '',
+    sku: '',
     name: '',
     description: '',
-    basePrice: '',
+    price: '',
     unit: 'Adet',
+    category: '',
     isActive: true
   });
 
+  const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -31,17 +34,21 @@ const ProductForm = () => {
     try {
       setLoading(true);
       const product = await getProductById(id);
+      
+      // Backend field isimleri: code, basePrice, vs.
       setFormData({
-        code: product.code,
-        name: product.name,
+        sku: product.code || product.sku || '',
+        name: product.name || '',
         description: product.description || '',
-        basePrice: product.basePrice.toString(),
-        unit: product.unit,
-        isActive: product.isActive
+        price: (product.basePrice || product.price || 0).toString(),
+        unit: product.unit || 'Adet',
+        category: product.category || '',
+        isActive: product.isActive !== undefined ? product.isActive : true
       });
       setError(null);
     } catch (err) {
       setError('Ürün yüklenirken hata oluştu: ' + err.message);
+      console.error('Load error:', err);
     } finally {
       setLoading(false);
     }
@@ -55,11 +62,15 @@ const ProductForm = () => {
     }));
   };
 
+  const handleVariantsChange = (newVariants) => {
+    setVariants(newVariants);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validasyon
-    if (!formData.code || !formData.name || !formData.basePrice) {
+    if (!formData.sku || !formData.name || !formData.price) {
       setError('Lütfen zorunlu alanları doldurun!');
       return;
     }
@@ -68,24 +79,76 @@ const ProductForm = () => {
       setLoading(true);
       setError(null);
 
+      // Ana ürün verisi - Backend field isimleriyle
       const productData = {
-        code: formData.code,
+        code: formData.sku,
         name: formData.name,
         description: formData.description || null,
-        basePrice: parseFloat(formData.basePrice),
+        basePrice: parseFloat(formData.price),
         unit: formData.unit,
-        isActive: formData.isActive
+        category: formData.category || null,
+        isActive: formData.isActive,
+        parentId: null // Ana ürün
       };
+
+      let createdProduct;
 
       if (isEditMode) {
         await updateProduct(id, productData);
         alert('Ürün başarıyla güncellendi!');
+        navigate('/');
       } else {
-        await createProduct(productData);
-        alert('Ürün başarıyla eklendi!');
-      }
+        // Önce ana ürünü oluştur
+        createdProduct = await createProduct(productData);
+        
+        // Sonra varyasyonları oluştur
+        if (variants.length > 0) {
+          let successCount = 0;
+          let failedVariants = [];
 
-      navigate('/');
+          for (const variant of variants) {
+            try {
+              const variantData = {
+                code: variant.sku,
+                name: variant.name,
+                description: null,
+                basePrice: variant.price,
+                unit: formData.unit,
+                category: formData.category,
+                isActive: variant.isActive,
+                parentId: createdProduct.id,
+                summary: variant.summary,
+                stockQuantity: variant.stockQuantity || 0
+              };
+              
+              await createProduct(variantData);
+              successCount++;
+            } catch (varErr) {
+              console.error(`Varyasyon hatası (${variant.sku}):`, varErr);
+              failedVariants.push({
+                sku: variant.sku,
+                error: varErr.response?.data?.message || varErr.message
+              });
+            }
+          }
+
+          // Sonuç raporu
+          if (failedVariants.length === 0) {
+            alert(`✅ Ürün ve ${successCount} varyasyon başarıyla eklendi!`);
+            navigate('/');
+          } else {
+            const failedSkus = failedVariants.map(f => f.sku).join(', ');
+            const errorMsg = `⚠️ Ana ürün ve ${successCount} varyasyon eklendi.\n\nAncak ${failedVariants.length} varyasyon eklenemedi:\n${failedSkus}\n\nNeden: SKU zaten kullanılıyor olabilir.`;
+            alert(errorMsg);
+            
+            // Yine de anasayfaya git
+            navigate('/');
+          }
+        } else {
+          alert('✅ Ürün başarıyla eklendi!');
+          navigate('/');
+        }
+      }
     } catch (err) {
       setError('İşlem sırasında hata oluştu: ' + (err.response?.data || err.message));
     } finally {
@@ -116,101 +179,130 @@ const ProductForm = () => {
       )}
 
       <form onSubmit={handleSubmit} className="product-form">
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="code">
-              Ürün Kodu <span className="required">*</span>
-            </label>
-            <input
-              type="text"
-              id="code"
-              name="code"
-              value={formData.code}
-              onChange={handleChange}
-              disabled={isEditMode} // Kod düzenlenemez
-              placeholder="LED-001"
-              required
-            />
-            {isEditMode && (
-              <small className="form-text">Ürün kodu düzenlenemez</small>
-            )}
+        {/* Temel Bilgiler */}
+        <div className="form-section">
+          <h3>📋 Temel Bilgiler</h3>
+          
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="sku">
+                Ürün Kodu (SKU) <span className="required">*</span>
+              </label>
+              <input
+                type="text"
+                id="sku"
+                name="sku"
+                value={formData.sku}
+                onChange={handleChange}
+                disabled={isEditMode}
+                placeholder="AR-A"
+                required
+              />
+              {isEditMode && (
+                <small className="form-text">Ürün kodu düzenlenemez</small>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="name">
+                Ürün Adı <span className="required">*</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="LED Armatür A Serisi"
+                required
+              />
+            </div>
           </div>
 
           <div className="form-group">
-            <label htmlFor="name">
-              Ürün Adı <span className="required">*</span>
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
+            <label htmlFor="description">Açıklama</label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
               onChange={handleChange}
-              placeholder="LED Armatür"
-              required
+              placeholder="Ürün açıklaması..."
+              rows="3"
             />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="price">
+                Fiyat (₺) <span className="required">*</span>
+              </label>
+              <input
+                type="number"
+                id="price"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                placeholder="250.00"
+                step="0.01"
+                min="0"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="unit">Birim</label>
+              <select
+                id="unit"
+                name="unit"
+                value={formData.unit}
+                onChange={handleChange}
+              >
+                <option value="Adet">Adet</option>
+                <option value="Kutu">Kutu</option>
+                <option value="Paket">Paket</option>
+                <option value="Kg">Kg</option>
+                <option value="Metre">Metre</option>
+                <option value="Litre">Litre</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="category">Kategori</label>
+              <input
+                type="text"
+                id="category"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                placeholder="Aydınlatma"
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                name="isActive"
+                checked={formData.isActive}
+                onChange={handleChange}
+              />
+              <span>Aktif</span>
+            </label>
           </div>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="description">Açıklama</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Ürün açıklaması..."
-            rows="3"
+        {/* SKU Builder - Sadece yeni ürün eklerken göster */}
+        {!isEditMode && (
+          <SkuBuilder
+            masterProduct={{
+              sku: formData.sku || 'SKU',
+              name: formData.name || 'Ürün Adı',
+              price: parseFloat(formData.price) || 0
+            }}
+            onVariantsChange={handleVariantsChange}
           />
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="basePrice">
-              Fiyat (₺) <span className="required">*</span>
-            </label>
-            <input
-              type="number"
-              id="basePrice"
-              name="basePrice"
-              value={formData.basePrice}
-              onChange={handleChange}
-              placeholder="250.00"
-              step="0.01"
-              min="0"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="unit">Birim</label>
-            <select
-              id="unit"
-              name="unit"
-              value={formData.unit}
-              onChange={handleChange}
-            >
-              <option value="Adet">Adet</option>
-              <option value="Kutu">Kutu</option>
-              <option value="Paket">Paket</option>
-              <option value="Kg">Kg</option>
-              <option value="Metre">Metre</option>
-              <option value="Litre">Litre</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              name="isActive"
-              checked={formData.isActive}
-              onChange={handleChange}
-            />
-            <span>Aktif</span>
-          </label>
-        </div>
+        )}
 
         <div className="form-actions">
           <button
