@@ -158,4 +158,23 @@ public class ProductsController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
+
+    // PUT: api/products/{id}/sku-config
+    [HttpPut("{id}/sku-config")]
+    public async Task<ActionResult<ProductDto>> UpdateSkuConfig(int id, [FromBody] string skuConfig)
+    {
+        try
+        {
+            var product = await _productRepository.UpdateSkuConfigAsync(id, skuConfig);
+            if (product == null)
+                return NotFound($"Product with ID {id} not found");
+
+            return Ok(product);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating SKU config for product {ProductId}", id);
+            return StatusCode(500, "Internal server error");
+        }
+    }
 }

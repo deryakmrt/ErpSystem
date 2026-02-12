@@ -19,7 +19,7 @@ public class ProductRepository : IProductRepository
     {
         return await _context.Products
             .Include(p => p.Variants)
-            .Where(p => p.ParentId == null) // Sadece ana ürünleri getir
+            .Where(p => p.ParentId == null)
             .Select(p => new ProductDto
             {
                 Id = p.Id,
@@ -30,7 +30,8 @@ public class ProductRepository : IProductRepository
                 Unit = p.Unit,
                 IsActive = p.IsActive,
                 CreatedAt = p.CreatedAt,
-                VariantCount = p.Variants.Count
+                VariantCount = p.Variants.Count,
+                SkuConfig = p.SkuConfig
             })
             .ToListAsync();
     }
@@ -50,7 +51,8 @@ public class ProductRepository : IProductRepository
                 Unit = p.Unit,
                 IsActive = p.IsActive,
                 CreatedAt = p.CreatedAt,
-                VariantCount = p.Variants.Count
+                VariantCount = p.Variants.Count,
+                SkuConfig = p.SkuConfig
             })
             .FirstOrDefaultAsync();
     }
@@ -70,7 +72,8 @@ public class ProductRepository : IProductRepository
                 Unit = p.Unit,
                 IsActive = p.IsActive,
                 CreatedAt = p.CreatedAt,
-                VariantCount = p.Variants.Count
+                VariantCount = p.Variants.Count,
+                SkuConfig = p.SkuConfig
             })
             .FirstOrDefaultAsync();
     }
@@ -85,7 +88,7 @@ public class ProductRepository : IProductRepository
             Price = dto.BasePrice,
             Unit = dto.Unit,
             IsActive = dto.IsActive,
-            ParentId = null // Ana ürün
+            ParentId = null
         };
 
         _context.Products.Add(product);
@@ -101,7 +104,8 @@ public class ProductRepository : IProductRepository
             Unit = product.Unit,
             IsActive = product.IsActive,
             CreatedAt = product.CreatedAt,
-            VariantCount = 0
+            VariantCount = 0,
+            SkuConfig = product.SkuConfig
         };
     }
 
@@ -133,7 +137,8 @@ public class ProductRepository : IProductRepository
             Unit = product.Unit,
             IsActive = product.IsActive,
             CreatedAt = product.CreatedAt,
-            VariantCount = await _context.Products.CountAsync(v => v.ParentId == id)
+            VariantCount = await _context.Products.CountAsync(v => v.ParentId == id),
+            SkuConfig = product.SkuConfig
         };
     }
 
@@ -165,11 +170,28 @@ public class ProductRepository : IProductRepository
                 Description = v.Description,
                 Price = v.Price,
                 SKU = v.Sku,
-                Barcode = null, // Product entity'de barcode yok
+                Barcode = null,
                 IsActive = v.IsActive,
                 CreatedAt = v.CreatedAt,
                 ProductName = v.ParentProduct != null ? v.ParentProduct.Name : null
             })
             .ToListAsync();
+    }
+
+    public async Task<ProductDto?> UpdateSkuConfigAsync(int id, string skuConfig)
+    {
+        var product = await _context.Products
+            .Where(p => p.Id == id && p.ParentId == null)
+            .FirstOrDefaultAsync();
+            
+        if (product == null)
+            return null;
+
+        product.SkuConfig = skuConfig;
+        product.UpdatedAt = DateTime.UtcNow;
+        
+        await _context.SaveChangesAsync();
+
+        return await GetByIdAsync(id);
     }
 }

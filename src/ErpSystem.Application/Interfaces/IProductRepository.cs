@@ -25,4 +25,7 @@ public interface IProductRepository
     
     // Kod ile ürün ara
     Task<ProductDto?> GetByCodeAsync(string code);
+    
+    // SKU Configuration güncelle
+    Task<ProductDto?> UpdateSkuConfigAsync(int id, string skuConfig);
 }
