@@ -85,35 +85,41 @@ public class ProductRepository : IProductRepository
     }
 
     public async Task<ProductDto> CreateAsync(CreateProductDto dto)
+{
+    var product = new Product
     {
-        var product = new Product
-        {
-            Sku = dto.Code,
-            Name = dto.Name,
-            Description = dto.Description,
-            Price = dto.BasePrice,
-            Unit = dto.Unit,
-            IsActive = dto.IsActive,
-            ParentId = null
-        };
+        Sku = dto.Code,
+        Name = dto.Name,
+        Description = dto.Description,
+        Price = dto.BasePrice,
+        Unit = dto.Unit,
+        IsActive = dto.IsActive,
+        
+        // 🔴 ESKİSİ: ParentId = null
+        // 🟢 YENİSİ: Gelen veriyi kullanıyoruz
+        ParentId = dto.ParentId, 
+        
+        SkuConfig = dto.SkuConfig // Bunu da ekleyelim, React tarafında gönderiyorsun
+    };
 
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
+    _context.Products.Add(product);
+    await _context.SaveChangesAsync();
 
-        return new ProductDto
-        {
-            Id = product.Id,
-            Code = product.Sku,
-            Name = product.Name,
-            Description = product.Description,
-            BasePrice = product.Price,
-            Unit = product.Unit,
-            IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt,
-            VariantCount = 0,
-            SkuConfig = product.SkuConfig
-        };
-    }
+    // Dönüş değerini hazırla
+    return new ProductDto
+    {
+        Id = product.Id,
+        Code = product.Sku,
+        Name = product.Name,
+        Description = product.Description,
+        BasePrice = product.Price,
+        Unit = product.Unit,
+        IsActive = product.IsActive,
+        CreatedAt = product.CreatedAt,
+        VariantCount = 0,
+        SkuConfig = product.SkuConfig
+    };
+}
 
     public async Task<ProductDto?> UpdateAsync(int id, UpdateProductDto dto)
     {
