@@ -35,6 +35,22 @@ public class ProductsController : ControllerBase
         }
     }
 
+    // GET: api/products/masters
+    [HttpGet("masters")]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetMasterProducts()
+    {
+        try
+        {
+            var products = await _productRepository.GetMasterProductsAsync();
+            return Ok(products);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting master products");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
     // GET: api/products/{id}
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductDto>> GetById(int id)

@@ -8,6 +8,9 @@ public interface IProductRepository
     // Tüm ürünleri getir
     Task<IEnumerable<ProductDto>> GetAllAsync();
     
+    // Sadece ana ürünleri getir (ParentId = null)
+    Task<IEnumerable<ProductDto>> GetMasterProductsAsync();
+    
     // ID'ye göre ürün getir
     Task<ProductDto?> GetByIdAsync(int id);
     

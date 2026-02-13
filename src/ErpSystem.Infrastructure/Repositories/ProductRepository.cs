@@ -36,6 +36,12 @@ public class ProductRepository : IProductRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<ProductDto>> GetMasterProductsAsync()
+    {
+        // GetAllAsync zaten sadece ana ürünleri döndürüyor
+        return await GetAllAsync();
+    }
+
     public async Task<ProductDto?> GetByIdAsync(int id)
     {
         return await _context.Products

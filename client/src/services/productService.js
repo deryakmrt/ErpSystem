@@ -1,6 +1,12 @@
 import api from './api';
 
-// Tüm ürünleri getir
+// Sadece ana ürünleri getir (varyasyonlar hariç)
+export const getMasterProducts = async () => {
+  const response = await api.get('/products/masters');
+  return response.data;
+};
+
+// Tüm ürünleri getir (ana + varyasyonlar)
 export const getAllProducts = async () => {
   const response = await api.get('/products');
   return response.data;
@@ -14,7 +20,7 @@ export const getProductById = async (id) => {
 
 // Koda göre ürün getir
 export const getProductByCode = async (code) => {
-  const response = await api.get(`/products/code/${code}`);
+  const response = await api.get(`/products/by-sku/${code}`);
   return response.data;
 };
 

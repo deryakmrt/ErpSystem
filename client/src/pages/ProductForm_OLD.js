@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createProduct, updateProduct, getProductById } from '../services/productService';
+import { createProduct, updateProduct, getProductById, getProductVariants } from '../services/productService';
 import SkuBuilder from '../components/SkuBuilder';
 import './ProductForm.css';
 
@@ -20,6 +20,7 @@ const ProductForm = () => {
   });
 
   const [variants, setVariants] = useState([]);
+  const [existingVariants, setExistingVariants] = useState([]); // Edit modunda var olan varyasyonlar
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -27,6 +28,7 @@ const ProductForm = () => {
   useEffect(() => {
     if (isEditMode) {
       loadProduct();
+      loadExistingVariants();
     }
   }, [id]);
 
@@ -35,7 +37,6 @@ const ProductForm = () => {
       setLoading(true);
       const product = await getProductById(id);
       
-      // Backend field isimleri: code, basePrice, vs.
       setFormData({
         sku: product.code || product.sku || '',
         name: product.name || '',
@@ -51,6 +52,15 @@ const ProductForm = () => {
       console.error('Load error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadExistingVariants = async () => {
+    try {
+      const variantData = await getProductVariants(id);
+      setExistingVariants(variantData);
+    } catch (err) {
+      console.error('Varyasyonlar yüklenemedi:', err);
     }
   };
 
@@ -95,13 +105,43 @@ const ProductForm = () => {
 
       if (isEditMode) {
         await updateProduct(id, productData);
-        alert('Ürün başarıyla güncellendi!');
+        
+        // Edit modunda yeni varyasyonlar eklendiyse
+        if (variants.length > 0) {
+          let successCount = 0;
+          for (const variant of variants) {
+            try {
+              const variantData = {
+                code: variant.sku,
+                name: variant.name,
+                description: null,
+                basePrice: variant.price,
+                unit: formData.unit,
+                category: formData.category,
+                isActive: variant.isActive,
+                parentId: parseInt(id),
+                summary: variant.summary,
+                stockQuantity: variant.stockQuantity || 0
+              };
+              
+              await createProduct(variantData);
+              successCount++;
+            } catch (varErr) {
+              console.error(`Varyasyon hatası (${variant.sku}):`, varErr);
+            }
+          }
+          
+          alert(`✅ Ürün güncellendi${successCount > 0 ? ` ve ${successCount} yeni varyasyon eklendi` : ''}!`);
+        } else {
+          alert('✅ Ürün başarıyla güncellendi!');
+        }
+        
         navigate('/');
       } else {
-        // Önce ana ürünü oluştur
+        // Yeni ürün oluştur
         createdProduct = await createProduct(productData);
         
-        // Sonra varyasyonları oluştur
+        // Varyasyonlar varsa ekle
         if (variants.length > 0) {
           let successCount = 0;
           let failedVariants = [];
@@ -140,8 +180,6 @@ const ProductForm = () => {
             const failedSkus = failedVariants.map(f => f.sku).join(', ');
             const errorMsg = `⚠️ Ana ürün ve ${successCount} varyasyon eklendi.\n\nAncak ${failedVariants.length} varyasyon eklenemedi:\n${failedSkus}\n\nNeden: SKU zaten kullanılıyor olabilir.`;
             alert(errorMsg);
-            
-            // Yine de anasayfaya git
             navigate('/');
           }
         } else {
@@ -156,7 +194,7 @@ const ProductForm = () => {
     }
   };
 
-  if (loading && isEditMode) {
+  if (loading && isEditMode && !formData.sku) {
     return <div className="loading">Yükleniyor...</div>;
   }
 
@@ -292,17 +330,48 @@ const ProductForm = () => {
           </div>
         </div>
 
-        {/* SKU Builder - Sadece yeni ürün eklerken göster */}
-        {!isEditMode && (
-          <SkuBuilder
-            masterProduct={{
-              sku: formData.sku || 'SKU',
-              name: formData.name || 'Ürün Adı',
-              price: parseFloat(formData.price) || 0
-            }}
-            onVariantsChange={handleVariantsChange}
-          />
+        {/* Var Olan Varyasyonlar (Edit modunda) */}
+        {isEditMode && existingVariants.length > 0 && (
+          <div className="form-section">
+            <h3>📦 Mevcut Varyasyonlar ({existingVariants.length})</h3>
+            <table className="existing-variants-table">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Ürün Adı</th>
+                  <th>Fiyat</th>
+                  <th>Özet</th>
+                  <th>Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                {existingVariants.map(v => (
+                  <tr key={v.id}>
+                    <td><code>{v.sku}</code></td>
+                    <td>{v.name}</td>
+                    <td>{v.price} ₺</td>
+                    <td><small>{v.summary || '-'}</small></td>
+                    <td>
+                      <span className={`status-badge ${v.isActive ? 'active' : 'inactive'}`}>
+                        {v.isActive ? 'Aktif' : 'Pasif'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
+
+        {/* SKU Builder - Her zaman göster */}
+        <SkuBuilder
+          masterProduct={{
+            sku: formData.sku || 'SKU',
+            name: formData.name || 'Ürün Adı',
+            price: parseFloat(formData.price) || 0
+          }}
+          onVariantsChange={handleVariantsChange}
+        />
 
         <div className="form-actions">
           <button

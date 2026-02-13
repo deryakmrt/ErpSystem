@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllProducts, deleteProduct } from '../services/productService';
+import { getMasterProducts, deleteProduct, getProductVariants } from '../services/productService';
 import { useNavigate } from 'react-router-dom';
 import './ProductList.css';
 
@@ -7,9 +7,11 @@ const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedProduct, setExpandedProduct] = useState(null);
+  const [variants, setVariants] = useState({});
   const navigate = useNavigate();
 
-  // Ürünleri yükle
+  // Ürünleri yükle (sadece ana ürünler)
   useEffect(() => {
     loadProducts();
   }, []);
@@ -17,7 +19,7 @@ const ProductList = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const data = await getAllProducts();
+      const data = await getMasterProducts(); // Sadece ana ürünler
       setProducts(data);
       setError(null);
     } catch (err) {
@@ -27,9 +29,31 @@ const ProductList = () => {
     }
   };
 
+  // Varyasyonları yükle
+  const loadVariants = async (productId) => {
+    try {
+      const variantData = await getProductVariants(productId);
+      setVariants(prev => ({ ...prev, [productId]: variantData }));
+    } catch (err) {
+      console.error('Varyasyonlar yüklenemedi:', err);
+    }
+  };
+
+  // Varyasyon panelini aç/kapat
+  const toggleVariants = (productId) => {
+    if (expandedProduct === productId) {
+      setExpandedProduct(null);
+    } else {
+      setExpandedProduct(productId);
+      if (!variants[productId]) {
+        loadVariants(productId);
+      }
+    }
+  };
+
   // Ürün sil
   const handleDelete = async (id, name) => {
-    if (window.confirm(`"${name}" ürününü silmek istediğinizden emin misiniz?`)) {
+    if (window.confirm(`"${name}" ürününü silmek istediğinizden emin misiniz?\n\nNot: Bu ürünün varyasyonları da silinecektir!`)) {
       try {
         await deleteProduct(id);
         loadProducts(); // Listeyi yenile
@@ -73,9 +97,9 @@ const ProductList = () => {
         <table className="product-table">
           <thead>
             <tr>
+              <th style={{width: '40px'}}></th>
               <th>Kod</th>
               <th>Ürün Adı</th>
-              <th>Açıklama</th>
               <th>Fiyat</th>
               <th>Birim</th>
               <th>Varyasyon</th>
@@ -85,49 +109,104 @@ const ProductList = () => {
           </thead>
           <tbody>
             {products.map((product) => (
-              <tr key={product.id}>
-                <td>{product.code}</td>
-                <td><strong>{product.name}</strong></td>
-                <td>{product.description || '-'}</td>
-                <td>{product.basePrice.toFixed(2)} ₺</td>
-                <td>{product.unit}</td>
-                <td>
-                  {product.variantCount > 0 ? (
-                    <span className="variant-badge">
-                      {product.variantCount} varyasyon
+              <React.Fragment key={product.id}>
+                {/* Ana Ürün Satırı */}
+                <tr>
+                  <td>
+                    {product.variantCount > 0 && (
+                      <button
+                        className="expand-btn"
+                        onClick={() => toggleVariants(product.id)}
+                        title="Varyasyonları göster/gizle"
+                      >
+                        {expandedProduct === product.id ? '▼' : '▶'}
+                      </button>
+                    )}
+                  </td>
+                  <td><code>{product.code}</code></td>
+                  <td><strong>{product.name}</strong></td>
+                  <td>{product.basePrice.toFixed(2)} ₺</td>
+                  <td>{product.unit}</td>
+                  <td>
+                    {product.variantCount > 0 ? (
+                      <span className="variant-badge">
+                        {product.variantCount} varyasyon
+                      </span>
+                    ) : (
+                      <span className="no-variant">-</span>
+                    )}
+                  </td>
+                  <td>
+                    <span className={`status-badge ${product.isActive ? 'active' : 'inactive'}`}>
+                      {product.isActive ? 'Aktif' : 'Pasif'}
                     </span>
-                  ) : (
-                    <span className="no-variant">-</span>
-                  )}
-                </td>
-                <td>
-                  <span className={`status ${product.isActive ? 'active' : 'inactive'}`}>
-                    {product.isActive ? 'Aktif' : 'Pasif'}
-                  </span>
-                </td>
-                <td>
-                  <div className="action-buttons">
-                    <button
-                      className="btn btn-sm btn-info"
-                      onClick={() => navigate(`/products/${product.id}`)}
-                    >
-                      Detay
-                    </button>
-                    <button
-                      className="btn btn-sm btn-warning"
-                      onClick={() => navigate(`/products/${product.id}/edit`)}
-                    >
-                      Düzenle
-                    </button>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => handleDelete(product.id, product.name)}
-                    >
-                      Sil
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                  <td>
+                    <div className="action-buttons">
+                      <button
+                        className="btn btn-sm btn-view"
+                        onClick={() => navigate(`/products/${product.id}`)}
+                        title="Detay"
+                      >
+                        👁️
+                      </button>
+                      <button
+                        className="btn btn-sm btn-edit"
+                        onClick={() => navigate(`/products/${product.id}/edit`)}
+                        title="Düzenle"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="btn btn-sm btn-delete"
+                        onClick={() => handleDelete(product.id, product.name)}
+                        title="Sil"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* Varyasyon Satırları */}
+                {expandedProduct === product.id && variants[product.id] && (
+                  variants[product.id].map(variant => (
+                    <tr key={`variant-${variant.id}`} className="variant-row">
+                      <td></td>
+                      <td><code className="variant-code">↳ {variant.sku}</code></td>
+                      <td className="variant-name">{variant.name}</td>
+                      <td>{variant.price.toFixed(2)} ₺</td>
+                      <td>-</td>
+                      <td>
+                        <small className="variant-summary">{variant.summary || '-'}</small>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${variant.isActive ? 'active' : 'inactive'}`}>
+                          {variant.isActive ? 'Aktif' : 'Pasif'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="action-buttons">
+                          <button
+                            className="btn btn-sm btn-edit"
+                            onClick={() => navigate(`/products/${variant.id}/edit`)}
+                            title="Düzenle"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            className="btn btn-sm btn-delete"
+                            onClick={() => handleDelete(variant.id, variant.name)}
+                            title="Sil"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
