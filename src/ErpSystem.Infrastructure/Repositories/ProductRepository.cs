@@ -58,6 +58,7 @@ public class ProductRepository : IProductRepository
             IsActive = p.IsActive,
             CreatedAt = p.CreatedAt,
             VariantCount = p.Variants.Count,
+            ParentId = p.ParentId, // 👈 Bunu ekledik
             SkuConfig = p.SkuConfig
         })
         .FirstOrDefaultAsync();
@@ -80,6 +81,7 @@ public class ProductRepository : IProductRepository
             IsActive = p.IsActive,
             CreatedAt = p.CreatedAt,
             VariantCount = p.Variants.Count,
+            ParentId = p.ParentId, // 👈 Bunu ekledik
             SkuConfig = p.SkuConfig
         })
         .FirstOrDefaultAsync();

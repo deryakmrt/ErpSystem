@@ -82,6 +82,9 @@ const ProductFormAdvanced = () => {
       // Şimdilik product objesinde parentId olduğunu varsayıyoruz.
       setIsVariant(!!product.parentId); 
 
+      if (product.parentId) {
+        setIsVariant(true);
+      }
       setFormData({
         sku: product.code || '',
         name: product.name || '',
@@ -410,6 +413,7 @@ const ProductFormAdvanced = () => {
         </button>
         
         {/* 👇 YENİ: Sadece varyasyon DEĞİLSE bu sekmeyi göster */}
+        {/* 👇 Varyasyon ise bu butonu gizle */}
         {!isVariant && (
           <button
             type="button"

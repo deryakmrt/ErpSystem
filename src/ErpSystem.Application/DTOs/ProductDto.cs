@@ -13,8 +13,8 @@ public class ProductDto
     
     // Varyasyon sayısı (ilişkili varyasyon varsa)
     public int VariantCount { get; set; }
+    public int? ParentId { get; set; }
     
     // SKU Configuration (JSON string)
     public string? SkuConfig { get; set; }
-    public int? ParentId { get; set; }
 }
