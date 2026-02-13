@@ -16,4 +16,5 @@ public class ProductDto
     
     // SKU Configuration (JSON string)
     public string? SkuConfig { get; set; }
+    public int? ParentId { get; set; }
 }

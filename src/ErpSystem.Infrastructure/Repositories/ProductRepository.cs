@@ -43,46 +43,47 @@ public class ProductRepository : IProductRepository
     }
 
     public async Task<ProductDto?> GetByIdAsync(int id)
-    {
-        return await _context.Products
-            .Include(p => p.Variants)
-            .Where(p => p.Id == id && p.ParentId == null)
-            .Select(p => new ProductDto
-            {
-                Id = p.Id,
-                Code = p.Sku,
-                Name = p.Name,
-                Description = p.Description,
-                BasePrice = p.Price,
-                Unit = p.Unit,
-                IsActive = p.IsActive,
-                CreatedAt = p.CreatedAt,
-                VariantCount = p.Variants.Count,
-                SkuConfig = p.SkuConfig
-            })
-            .FirstOrDefaultAsync();
-    }
+{
+    return await _context.Products
+        .Include(p => p.Variants)
+        .Where(p => p.Id == id) // 🟢 DÜZELTME: && p.ParentId == null KALDIRILDI
+        .Select(p => new ProductDto
+        {
+            Id = p.Id,
+            Code = p.Sku,
+            Name = p.Name,
+            Description = p.Description,
+            BasePrice = p.Price,
+            Unit = p.Unit,
+            IsActive = p.IsActive,
+            CreatedAt = p.CreatedAt,
+            VariantCount = p.Variants.Count,
+            SkuConfig = p.SkuConfig
+        })
+        .FirstOrDefaultAsync();
+}
 
     public async Task<ProductDto?> GetByCodeAsync(string code)
-    {
-        return await _context.Products
-            .Include(p => p.Variants)
-            .Where(p => p.Sku == code && p.ParentId == null)
-            .Select(p => new ProductDto
-            {
-                Id = p.Id,
-                Code = p.Sku,
-                Name = p.Name,
-                Description = p.Description,
-                BasePrice = p.Price,
-                Unit = p.Unit,
-                IsActive = p.IsActive,
-                CreatedAt = p.CreatedAt,
-                VariantCount = p.Variants.Count,
-                SkuConfig = p.SkuConfig
-            })
-            .FirstOrDefaultAsync();
-    }
+{
+    return await _context.Products
+        .Include(p => p.Variants)
+        .Where(p => p.Sku == code) // 🟢 DÜZELTME: && p.ParentId == null KALDIRILDI
+        .Select(p => new ProductDto
+        {
+            // ... (içerik aynı)
+            Id = p.Id,
+            Code = p.Sku,
+            Name = p.Name,
+            Description = p.Description,
+            BasePrice = p.Price,
+            Unit = p.Unit,
+            IsActive = p.IsActive,
+            CreatedAt = p.CreatedAt,
+            VariantCount = p.Variants.Count,
+            SkuConfig = p.SkuConfig
+        })
+        .FirstOrDefaultAsync();
+}
 
     public async Task<ProductDto> CreateAsync(CreateProductDto dto)
 {
@@ -124,11 +125,11 @@ public class ProductRepository : IProductRepository
     public async Task<ProductDto?> UpdateAsync(int id, UpdateProductDto dto)
     {
         var product = await _context.Products
-            .Where(p => p.Id == id && p.ParentId == null)
-            .FirstOrDefaultAsync();
-            
-        if (product == null)
-            return null;
+        .Where(p => p.Id == id) // 🟢 DÜZELTME: && p.ParentId == null KALDIRILDI
+        .FirstOrDefaultAsync();
+        
+    if (product == null)
+        return null;
 
         product.Name = dto.Name;
         product.Description = dto.Description;
@@ -140,33 +141,33 @@ public class ProductRepository : IProductRepository
         await _context.SaveChangesAsync();
 
         return new ProductDto
-        {
-            Id = product.Id,
-            Code = product.Sku,
-            Name = product.Name,
-            Description = product.Description,
-            BasePrice = product.Price,
-            Unit = product.Unit,
-            IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt,
-            VariantCount = await _context.Products.CountAsync(v => v.ParentId == id),
-            SkuConfig = product.SkuConfig
-        };
+    {
+        Id = product.Id,
+        Code = product.Sku,
+        Name = product.Name,
+        Description = product.Description,
+        BasePrice = product.Price,
+        Unit = product.Unit,
+        IsActive = product.IsActive,
+        CreatedAt = product.CreatedAt,
+        VariantCount = await _context.Products.CountAsync(v => v.ParentId == id),
+        SkuConfig = product.SkuConfig
+    };
     }
 
     public async Task<bool> DeleteAsync(int id)
-    {
-        var product = await _context.Products
-            .Where(p => p.Id == id && p.ParentId == null)
-            .FirstOrDefaultAsync();
-            
-        if (product == null)
-            return false;
+{
+    var product = await _context.Products
+        .Where(p => p.Id == id) // 🟢 DÜZELTME: && p.ParentId == null KALDIRILDI
+        .FirstOrDefaultAsync();
+        
+    if (product == null)
+        return false;
 
-        _context.Products.Remove(product);
-        await _context.SaveChangesAsync();
-        return true;
-    }
+    _context.Products.Remove(product);
+    await _context.SaveChangesAsync();
+    return true;
+}
 
     public async Task<IEnumerable<ProductVariantDto>> GetVariantsAsync(int productId)
     {

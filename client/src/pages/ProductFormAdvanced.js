@@ -10,6 +10,8 @@ const ProductFormAdvanced = () => {
 
   // Active Tab
   const [activeTab, setActiveTab] = useState('general');
+  // 👇 YENİ: Bu ürün bir varyasyon mu?
+  const [isVariant, setIsVariant] = useState(false);
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -74,6 +76,12 @@ const ProductFormAdvanced = () => {
       setLoading(true);
       const product = await getProductById(id);
       
+      // 👇 YENİ: ParentId var mı kontrol et (Varsa bu bir varyasyondur)
+      // Not: Backend DTO'sunda ParentId gönderdiğinden emin olmalıyız. 
+      // Eğer gelmiyorsa ProductDto.cs içine eklememiz gerekebilir.
+      // Şimdilik product objesinde parentId olduğunu varsayıyoruz.
+      setIsVariant(!!product.parentId); 
+
       setFormData({
         sku: product.code || '',
         name: product.name || '',
@@ -372,7 +380,11 @@ const ProductFormAdvanced = () => {
       {/* Header */}
       <div className="form-header">
         <div>
-          <h1>Ürün Düzenle: {formData.name || 'Yeni Ürün'}</h1>
+          <h1>
+            {/* 👇 YENİ: Başlığın yanına etiket */}
+            {isVariant ? <span style={{color:'orange', fontSize:'0.6em', border:'1px solid orange', padding:'2px 5px', borderRadius:'4px', marginRight:'10px', verticalAlign:'middle'}}>VARYASYON</span> : null}
+            Ürün Düzenle: {formData.name || 'Yeni Ürün'}
+          </h1>
           <p className="subtitle">Gelişmiş ürün yapılandırıcı</p>
         </div>
         <div className="header-actions">
@@ -396,13 +408,17 @@ const ProductFormAdvanced = () => {
         >
           🎨 Genel Bilgiler
         </button>
-        <button
-          type="button"
-          className={`tab ${activeTab === 'variants' ? 'active' : ''}`}
-          onClick={() => setActiveTab('variants')}
-        >
-          🧙 Varyasyon Sihirbazı ({variants.length})
-        </button>
+        
+        {/* 👇 YENİ: Sadece varyasyon DEĞİLSE bu sekmeyi göster */}
+        {!isVariant && (
+          <button
+            type="button"
+            className={`tab ${activeTab === 'variants' ? 'active' : ''}`}
+            onClick={() => setActiveTab('variants')}
+          >
+            🧙 Varyasyon Sihirbazı ({variants.length})
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -641,9 +657,20 @@ const ProductFormAdvanced = () => {
                               <td>{variant.price.toFixed(2)} ₺</td>
                               <td>
                                 <div className="action-btns">
-                                  <button type="button" className="btn-detail">📋 Detay</button>
-                                  <button type="button" className="btn-edit">🖊 Ayır</button>
-                                  <button type="button" className="btn-delete" onClick={() => removeVariant(variant.id)}>🗑 Sil</button>
+                                  <button 
+                                    type="button" 
+                                    className="btn-edit" 
+                                    onClick={() => navigate(`/product/edit/${variant.id}`)}
+                                  >
+                                    🖊 Düzenle
+                                  </button>
+                                  <button 
+                                    type="button" 
+                                    className="btn-delete" 
+                                    onClick={() => removeVariant(variant.id)}
+                                  >
+                                    🗑 Sil
+                                  </button>
                                 </div>
                               </td>
                             </tr>
