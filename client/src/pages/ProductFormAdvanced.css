@@ -658,3 +658,69 @@
     white-space: nowrap;
   }
 }
+/* ========== PRICE INPUT GROUP ========== */
+.price-input-group {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 4px;
+  transition: all 0.2s;
+}
+
+.price-input-group:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.price-whole {
+  flex: 2;
+  border: none !important;
+  text-align: right;
+  font-size: 18px !important;
+  font-weight: 700;
+  color: #334155;
+  padding: 8px !important;
+  box-shadow: none !important;
+}
+
+.price-whole:focus, .price-decimal:focus {
+  box-shadow: none !important;
+}
+
+.price-separator {
+  font-size: 20px;
+  font-weight: bold;
+  color: #94a3b8;
+  padding: 0 4px;
+  margin-bottom: 4px;
+}
+
+.price-decimal {
+  flex: 1;
+  border: none !important;
+  font-size: 14px !important;
+  color: #64748b;
+  padding: 8px !important;
+  box-shadow: none !important;
+}
+
+/* ========== SKU EDIT SECTION ========== */
+.sku-edit-section {
+  background: #fff7ed !important; /* Açık turuncu arka plan */
+  border-color: #fed7aa !important;
+}
+
+.sku-edit-section h3 {
+  color: #9a3412 !important;
+}
+
+.sku-edit-section select {
+  border-color: #fdba74 !important;
+}
+
+.sku-edit-section select:focus {
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1) !important;
+}

@@ -124,52 +124,78 @@ public class ProductRepository : IProductRepository
     };
 }
 
-    public async Task<ProductDto?> UpdateAsync(int id, UpdateProductDto dto)
+public async Task<ProductDto?> UpdateAsync(int id, UpdateProductDto dto)
     {
         var product = await _context.Products
-        .Where(p => p.Id == id) // 🟢 DÜZELTME: && p.ParentId == null KALDIRILDI
-        .FirstOrDefaultAsync();
-        
-    if (product == null)
-        return null;
+            .Where(p => p.Id == id)
+            .FirstOrDefaultAsync();
+            
+        if (product == null)
+            return null;
+
+        // 🟢 1. SKU (Kod) Güncellemesi
+        if (!string.IsNullOrWhiteSpace(dto.Code))
+        {
+            product.Sku = dto.Code; 
+        }
+
+        // 🟢 2. Tarif (SkuConfig) Güncellemesi - EKSİK OLAN BUYDU!
+        // Eğer yeni bir tarif geldiyse güncelle, yoksa eskisi kalsın
+        if (!string.IsNullOrEmpty(dto.SkuConfig))
+        {
+            product.SkuConfig = dto.SkuConfig;
+        }
 
         product.Name = dto.Name;
         product.Description = dto.Description;
         product.Price = dto.BasePrice;
         product.Unit = dto.Unit;
         product.IsActive = dto.IsActive;
+        
+        // 🟢 3. Kategori Güncellemesi
+        // Boş gönderilirse (null) veritabanını bozma, doluysa güncelle
+        if (dto.Category != null) 
+        {
+             product.Category = dto.Category;
+        }
+
         product.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 
+        // Geriye güncel halini döndür
         return new ProductDto
-    {
-        Id = product.Id,
-        Code = product.Sku,
-        Name = product.Name,
-        Description = product.Description,
-        BasePrice = product.Price,
-        Unit = product.Unit,
-        IsActive = product.IsActive,
-        CreatedAt = product.CreatedAt,
-        VariantCount = await _context.Products.CountAsync(v => v.ParentId == id),
-        SkuConfig = product.SkuConfig
-    };
+        {
+            Id = product.Id,
+            Code = product.Sku,
+            Name = product.Name,
+            Description = product.Description,
+            BasePrice = product.Price,
+            Unit = product.Unit,
+            IsActive = product.IsActive,
+            CreatedAt = product.CreatedAt,
+            VariantCount = await _context.Products.CountAsync(v => v.ParentId == id),
+            SkuConfig = product.SkuConfig
+        };
     }
+public async Task<bool> DeleteAsync(int id)
+    {
+        // Önce silinecek ürünü bul
+        var product = await _context.Products.FindAsync(id);
+        if (product == null) return false;
 
-    public async Task<bool> DeleteAsync(int id)
-{
-    var product = await _context.Products
-        .Where(p => p.Id == id) // 🟢 DÜZELTME: && p.ParentId == null KALDIRILDI
-        .FirstOrDefaultAsync();
-        
-    if (product == null)
-        return false;
+        // 🟢 YENİ: Eğer bu bir "Baba" ürünse, önce çocuklarını (varyasyonlarını) bul ve sil
+        var children = await _context.Products.Where(p => p.ParentId == id).ToListAsync();
+        if (children.Any())
+        {
+            _context.Products.RemoveRange(children);
+        }
 
-    _context.Products.Remove(product);
-    await _context.SaveChangesAsync();
-    return true;
-}
+        // Sonra kendisini sil
+        _context.Products.Remove(product);
+        await _context.SaveChangesAsync();
+        return true;
+    }
 
     public async Task<IEnumerable<ProductVariantDto>> GetVariantsAsync(int productId)
     {

@@ -52,13 +52,15 @@ const ProductList = () => {
   };
 
   // Ürün sil
-  const handleDelete = async (id, name) => {
-    if (window.confirm(`"${name}" ürününü silmek istediğinizden emin misiniz?\n\nNot: Bu ürünün varyasyonları da silinecektir!`)) {
+const handleDelete = async (id) => {
+    // 🟢 YENİ: Güçlü Uyarı
+    if (window.confirm('DİKKAT! Bu ana ürünü silerseniz bağlı TÜM VARYASYONLAR da silinecektir.\n\nEmin misiniz?')) {
       try {
         await deleteProduct(id);
         loadProducts(); // Listeyi yenile
       } catch (err) {
-        alert('Ürün silinirken hata oluştu: ' + err.message);
+        console.error('Silme hatası:', err);
+        alert('Silinirken bir hata oluştu.');
       }
     }
   };

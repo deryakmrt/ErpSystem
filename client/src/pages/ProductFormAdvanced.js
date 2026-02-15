@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createProduct, updateProduct, getProductById, getProductVariants } from '../services/productService';
+import { createProduct, updateProduct, getProductById, getProductVariants, deleteProduct } from '../services/productService';
 import './ProductFormAdvanced.css';
+
+// 👇 Helper: Seçenekten Kısaltma Kodu Üretme (SkuBuilder ile aynı mantık olmalı)
+const generateCode = (type, value) => {
+  if (!value) return '';
+  // Örn: "3000K" -> "30", "4000K" -> "40"
+  // Eğer özel bir mantığın varsa buraya ekle, yoksa basitçe:
+  return value.replace(/[^0-9a-zA-Z]/g, '').substring(0, 3).toUpperCase();
+};
 
 const ProductFormAdvanced = () => {
   const { id } = useParams();
@@ -12,6 +20,13 @@ const ProductFormAdvanced = () => {
   const [activeTab, setActiveTab] = useState('general');
   // 👇 YENİ: Bu ürün bir varyasyon mu?
   const [isVariant, setIsVariant] = useState(false);
+  
+  // 👇 YENİ: Hafıza ve Fiyat State'leri
+  const [lastWizardState, setLastWizardState] = useState({});
+  const [priceWhole, setPriceWhole] = useState('');
+  const [priceDecimal, setPriceDecimal] = useState('');
+  const [rootSkuBase, setRootSkuBase] = useState('');
+  const [rootNameBase, setRootNameBase] = useState(''); // 👇 YENİ: Varyasyon ismi üretmek için baba adı
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -71,20 +86,86 @@ const ProductFormAdvanced = () => {
     }
   }, [id]);
 
-  const loadProduct = async () => {
+const loadProduct = async () => {
     try {
       setLoading(true);
       const product = await getProductById(id);
       
-      // 👇 YENİ: ParentId var mı kontrol et (Varsa bu bir varyasyondur)
-      // Not: Backend DTO'sunda ParentId gönderdiğinden emin olmalıyız. 
-      // Eğer gelmiyorsa ProductDto.cs içine eklememiz gerekebilir.
-      // Şimdilik product objesinde parentId olduğunu varsayıyoruz.
-      setIsVariant(!!product.parentId); 
+      // Fiyat Ayrıştırma
+      const priceStr = (product.basePrice || 0).toFixed(2);
+      const [whole, decimal] = priceStr.split('.');
+      setPriceWhole(whole);
+      setPriceDecimal(decimal);
 
+      let currentConfig = null;
+      let fetchedParentName = '';
+
+      // 🟢 ADIM 1: BABA ÜRÜN KONTROLÜ (İsim ve Config için)
       if (product.parentId) {
-        setIsVariant(true);
+        // Bu bir VARYASYON. Mutlaka babasını çağırıp ismini almalıyız.
+        try {
+          const parentProduct = await getProductById(product.parentId);
+          fetchedParentName = parentProduct.name; // ✅ Doğru Kök İsim (Örn: Canna Açelya)
+          
+          // Eğer varyasyonun kendi configi yoksa babadan al (Fallback)
+          if (!product.skuConfig && parentProduct.skuConfig) {
+             currentConfig = JSON.parse(parentProduct.skuConfig);
+          }
+        } catch (err) {
+          console.error("Baba ürün bulunamadı:", err);
+          fetchedParentName = product.name; // Hata olursa mecburen kendi ismini kullan
+        }
+      } else {
+        // Bu bir ANA ÜRÜN
+        fetchedParentName = product.name;
       }
+
+      // 🟢 ADIM 2: CONFIG YÜKLEME
+      if (product.skuConfig) {
+        currentConfig = JSON.parse(product.skuConfig);
+      }
+
+      // 🟢 ADIM 3: STATE GÜNCELLEME
+      if (currentConfig) {
+        setSkuRecipe(currentConfig);
+        
+        // Dropdown seçeneklerini yükle
+        const newOptions = {};
+        currentConfig.forEach(item => {
+          if (attributePool[item.type]) {
+            newOptions[item.type] = attributePool[item.type].options;
+          }
+        });
+        setRecipeOptions(newOptions);
+
+        // VARYASYON İSE: Dropdownları Doldur
+        if (product.parentId) {
+          const parts = (product.code || '').split('-'); 
+          const revConfig = [...currentConfig].reverse();
+          const revParts = [...parts].reverse();
+          const parsedData = {};
+
+          revConfig.forEach((item, index) => {
+            const partCode = revParts[index];
+            const attr = attributePool[item.type];
+            if (attr && partCode) {
+              const matchingOption = attr.options.find(opt => generateCode(item.type, opt) === partCode);
+              if (matchingOption) parsedData[item.type] = matchingOption;
+            }
+          });
+          
+          setWizardData(parsedData);
+
+          // Kök SKU ve Kök İsim Ayarı
+          const suffixCount = currentConfig.length;
+          const rootParts = parts.slice(0, parts.length - suffixCount);
+          setRootSkuBase(rootParts.join('-'));
+          
+          // 🟢 Kök İsim Hafızası (Artık temiz parent ismi var)
+          setRootNameBase(fetchedParentName); 
+        }
+      }
+
       setFormData({
         sku: product.code || '',
         name: product.name || '',
@@ -94,36 +175,46 @@ const ProductFormAdvanced = () => {
         category: product.category || '',
         image: null,
         imagePreview: product.imageUrl || null,
-        isActive: product.isActive
+        isActive: product.isActive,
+        parentId: product.parentId
       });
 
-      // Load SKU Config
-      if (product.skuConfig) {
-        try {
-          const config = JSON.parse(product.skuConfig);
-          setSkuRecipe(config);
-        } catch (e) {
-          console.error('SKU Config parse error:', e);
-        }
-      }
+      if (product.parentId) setIsVariant(true);
 
-      setError(null);
     } catch (err) {
-      setError('Ürün yüklenirken hata oluştu: ' + err.message);
+      console.error('Ürün yükleme hatası:', err);
+      setError('Ürün yüklenirken hata oluştu.');
     } finally {
       setLoading(false);
     }
   };
+const loadExistingVariants = async () => {
+    // Eğer bu bir varyasyon ise, kendi kardeşlerini değil, babasının çocuklarını getirmeli (isteğe bağlı)
+    // Ama şimdilik sadece "Ana Ürün"de çalışsın istiyoruz.
+    if (!id || isVariant) return; 
 
-  const loadExistingVariants = async () => {
     try {
-      const variantData = await getProductVariants(id);
-      setVariants(variantData.map(v => ({
+      const data = await getProductVariants(id);
+      const rawList = Array.isArray(data) ? data : (data.data || []);
+      
+      // 🟢 ÖNEMLİ: Gelenlerin veritabanında var olduğunu işaretle (isExisting: true)
+      // Böylece kaydederken tekrar oluşturmaya çalışmayız.
+      const markedList = rawList.map(v => ({
         ...v,
-        isExisting: true // Mark as existing
-      })));
-    } catch (err) {
-      console.error('Varyasyonlar yüklenemedi:', err);
+        isExisting: true, // Bu bayrak hayat kurtarır
+        // Eğer backend 'code' gönderiyorsa onu 'sku' olarak eşle
+        sku: v.code || v.sku, 
+        price: v.basePrice || v.price
+      }));
+      
+      setVariants(markedList);
+      
+      // 🟢 DÜZELTİLDİ: markedList kullanıyoruz
+      if (markedList.length > 0) {
+        // Eğer varyasyon varsa, sonuncusunun özelliklerini hafızaya atma mantığı (varsa) buradadır
+      }
+    } catch (error) {
+       console.error("Varyasyonlar yüklenemedi:", error);
     }
   };
 
@@ -199,7 +290,7 @@ const ProductFormAdvanced = () => {
   // ========== WIZARD ==========
 
   const openWizard = () => {
-    setWizardData({});
+    setWizardData(lastWizardState || {}); // Hafızadaki son seçimi getir
     setManualCode('');
     setWizardPreview({ 
       sku: formData.sku, 
@@ -254,6 +345,9 @@ const ProductFormAdvanced = () => {
   };
 
   const addVariantFromWizard = () => {
+    // Hafızaya Al
+    setLastWizardState(wizardData);
+
     // Validation
     for (const item of skuRecipe) {
       if (!wizardData[item.type]) {
@@ -289,11 +383,13 @@ const ProductFormAdvanced = () => {
   };
 
   // ========== SUBMIT ==========
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.sku || !formData.name || !formData.price) {
+    // 1. Fiyatı Hesapla
+    const finalPrice = parseFloat(`${priceWhole}.${priceDecimal || '00'}`);
+    
+    if (!formData.sku || !formData.name) {
       setError('Lütfen zorunlu alanları doldurun!');
       return;
     }
@@ -302,47 +398,64 @@ const ProductFormAdvanced = () => {
       setLoading(true);
       setError(null);
 
+      // 2. Ana Ürün Verisi
       const productData = {
+        id: isEditMode ? parseInt(id) : 0,
         code: formData.sku,
         name: formData.name,
-        description: formData.description || null,
-        basePrice: parseFloat(formData.price),
+        description: formData.description || '', // null yerine boş string göndermek bazen daha güvenlidir
+        basePrice: finalPrice, 
         unit: formData.unit,
-        category: formData.category || null,
+        category: formData.category || '', // null yerine boş string
         isActive: formData.isActive,
-        skuConfig: JSON.stringify(skuRecipe),
-        parentId: null
+        skuConfig: JSON.stringify(skuRecipe), // ✅ Bunu gönderdiğimizden eminiz
+        parentId: isVariant ? formData.parentId : null
       };
 
       let createdProduct;
 
+      // --- GÜNCELLEME MODU ---
       if (isEditMode) {
+        // A) Ana Ürünü Güncelle
         await updateProduct(id, productData);
         
-        // Add new variants
-        const newVariants = variants.filter(v => !v.isExisting);
-        if (newVariants.length > 0) {
-          for (const variant of newVariants) {
-            const variantData = {
-              code: variant.sku,
-              name: variant.name,
-              basePrice: variant.price,
-              unit: formData.unit,
-              category: formData.category,
-              isActive: variant.isActive,
-              parentId: parseInt(id),
-              summary: variant.summary
-            };
+        // B) Eğer Ana Ürünse, SADECE YENİ eklenen varyasyonları oluştur
+        if (!isVariant) {
+            // Sadece 'isExisting' OLMAYANLARI filtrele
+            const newVariants = variants.filter(v => !v.isExisting);
             
-            await createProduct(variantData);
-          }
-          alert(`✅ Ürün güncellendi ve ${newVariants.length} yeni varyasyon eklendi!`);
+            if (newVariants.length > 0) {
+              for (const variant of newVariants) {
+                const variantData = {
+                  code: variant.sku,
+                  name: variant.name,
+                  basePrice: variant.price,
+                  unit: formData.unit,
+                  category: formData.category,
+                  isActive: variant.isActive,
+                  parentId: parseInt(id),
+                  skuConfig: variant.skuConfig || null
+                };
+                // Çakışma riskine karşı try-catch
+                try {
+                   await createProduct(variantData);
+                } catch (subErr) {
+                   console.error("Varyasyon eklenemedi:", variant.sku, subErr);
+                }
+              }
+              alert(`✅ Ürün güncellendi ve ${newVariants.length} yeni varyasyon eklendi!`);
+            } else {
+              alert('✅ Ürün başarıyla güncellendi!');
+            }
         } else {
-          alert('✅ Ürün başarıyla güncellendi!');
+            alert('✅ Varyasyon başarıyla güncellendi!');
         }
         
-        navigate('/');
+        // 🟢 ROTA DÜZELTMESİ: '/products' yerine '/' (veya senin ana sayfan neresiyse)
+        navigate('/'); 
+
       } else {
+        // --- YENİ KAYIT MODU ---
         createdProduct = await createProduct(productData);
         
         if (variants.length > 0) {
@@ -355,9 +468,8 @@ const ProductFormAdvanced = () => {
               category: formData.category,
               isActive: variant.isActive,
               parentId: createdProduct.id,
-              summary: variant.summary
+              skuConfig: variant.skuConfig || null
             };
-            
             await createProduct(variantData);
           }
           alert(`✅ Ürün ve ${variants.length} varyasyon başarıyla eklendi!`);
@@ -365,10 +477,14 @@ const ProductFormAdvanced = () => {
           alert('✅ Ürün başarıyla eklendi!');
         }
         
+        // 🟢 ROTA DÜZELTMESİ
         navigate('/');
       }
+
     } catch (err) {
-      setError('İşlem sırasında hata oluştu: ' + (err.response?.data || err.message));
+      console.error("Submit Hatası:", err);
+      // Hata mesajını ekrana bas
+      setError('İşlem sırasında hata oluştu: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -445,18 +561,71 @@ const ProductFormAdvanced = () => {
                   />
                 </div>
 
-                <div className="form-section">
-                  <h3>Kök SKU (Model Kodu)</h3>
-                  <input
-                    type="text"
-                    name="sku"
-                    value={formData.sku}
-                    onChange={handleChange}
-                    placeholder="RN-CNN SR"
-                    disabled={isEditMode}
-                    required
-                  />
-                </div>
+                {isVariant ? (
+                  /* VARYASYON DÜZENLEME MODU (Dropdownlar) */
+                  <div className="form-section sku-edit-section">
+                    <h3 style={{color:'#d97706'}}>
+                      {isVariant ? '🔧 Seçili Özellikler (Tarif)' : '🔧 Varyasyon Yapılandırma'}
+                    </h3>
+                    {/* Varyasyon ise, hangi özelliklerin seçildiğini gösteren dinamik form */}
+                    <div className="wizard-form" style={{gridTemplateColumns: '1fr', gap:'10px', marginTop:'10px'}}>
+                      {skuRecipe.map(item => (
+                        <div key={item.type} className="wizard-field">
+                          <label>{item.label}</label>
+                          <select
+                            value={wizardData[item.type] || ''}
+                            onChange={(e) => {
+                              const newData = { ...wizardData, [item.type]: e.target.value };
+                              setWizardData(newData);
+                              
+                              // Anlık SKU ve İsim Güncelleme
+                              let newSku = rootSkuBase;
+                              let newNameSuffix = ''; // 🟢 İsim ekleri
+                              
+                              skuRecipe.forEach(r => {
+                                const val = (r.type === item.type) ? e.target.value : newData[r.type];
+                                if (val) {
+                                  newSku += `-${generateCode(r.type, val)}`;
+                                  newNameSuffix += ` ${val}`; // 🟢 İsim parçası ekle (Örn: " 60cm")
+                                }
+                              });
+                              
+                              setFormData(prev => ({
+                                ...prev,
+                                sku: newSku,
+                                // 🟢 İSMİ DE GÜNCELLE: Baba Adı + Özellikler
+                                name: rootNameBase ? `${rootNameBase} ${newNameSuffix.trim()}` : prev.name
+                              }));
+                            }}
+                          >
+                            <option value="">Seçiniz...</option>
+                            {(recipeOptions[item.type] || []).map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="sku-preview-box" style={{marginTop:'10px', padding:'10px', background:'#fffbeb', border:'1px solid #fcd34d', borderRadius:'6px'}}>
+                      <small style={{display:'block', color:'#92400e', fontWeight:'bold'}}>GÜNCEL SKU:</small>
+                      <code style={{fontSize:'14px', color:'#b45309'}}>{formData.sku}</code>
+                    </div>
+                  </div>
+                ) : (
+                  /* ANA ÜRÜN MODU (Normal Input) */
+                  <div className="form-section">
+                    <h3>Kök SKU (Model Kodu)</h3>
+                    <input
+                      type="text"
+                      name="sku"
+                      value={formData.sku}
+                      onChange={handleChange}
+                      placeholder="RN-CNN SR"
+                      disabled={isEditMode}
+                      required
+                    />
+                  </div>
+                )}
 
                 <div className="form-section">
                   <h3>Kategori</h3>
@@ -556,6 +725,28 @@ const ProductFormAdvanced = () => {
                   </div>
                 </div>
 
+                {/* ✅ Fiyat Alanı (Tam + Ondalık Ayrılmış) */}
+                <div className="form-section">
+                  <h3>Birim Fiyat (₺)</h3>
+                  <div className="price-input-group">
+                    <input 
+                      type="text" 
+                      placeholder="0" 
+                      value={priceWhole} 
+                      onChange={(e) => setPriceWhole(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="price-whole"
+                    />
+                    <span className="price-separator">,</span>
+                    <input 
+                      type="text" 
+                      placeholder="00" 
+                      value={priceDecimal} 
+                      onChange={(e) => setPriceDecimal(e.target.value.replace(/[^0-9]/g, '').substring(0, 2))}
+                      className="price-decimal"
+                    />
+                  </div>
+                </div>
+                
                 <div className="form-row">
                   <div className="form-section">
                     <h3>Birim</h3>
