@@ -81,12 +81,43 @@ const ProductFormAdvanced = () => {
   // Load product in edit mode
   useEffect(() => {
     if (isEditMode) {
+      // 🛑 1. HER ŞEYİ SIFIRLA (HARD RESET)
+      // Sayfayı yenilemiş gibi tüm hafızayı temizliyoruz
+      setLoading(true); 
+      setIsVariant(false);       // Varsayılan: Ana ürün
+      setVariants([]);           // Eski listeyi uçur
+      setWizardData({});         // Dropdownları boşalt
+      setSkuRecipe([]);          // Tarifi temizle
+      setRecipeOptions({});      // Seçenekleri temizle
+      setPriceWhole('');         // Fiyatları temizle
+      setPriceDecimal('');
+      setRootNameBase('');       // İsim hafızasını sil
+      setRootSkuBase('');
+      setActiveTab('general');   // İlk sekmeye dön
+      
+      // Formun içini de boşalt ki eski yazılar (örn: Ana Ürün İsmi) kalmasın
+      setFormData({
+        sku: '',
+        name: '', // Yüklenene kadar boş kalsın
+        description: '',
+        price: '',
+        unit: 'Adet',
+        category: '',
+        image: null,
+        imagePreview: null,
+        isActive: true
+      });
+
+      // 🚀 2. ŞİMDİ TAZE VERİYİ ÇEK
       loadProduct();
       loadExistingVariants();
     }
   }, [id]);
 
 const loadProduct = async () => {
+  // 👇 YENİ: Yüklemeye başlarken varyasyon listesini ve state'i temizle
+    setVariants([]); 
+    setIsVariant(false);
     try {
       setLoading(true);
       const product = await getProductById(id);
@@ -855,7 +886,8 @@ const loadExistingVariants = async () => {
                                   <button 
                                     type="button" 
                                     className="btn-edit" 
-                                    onClick={() => navigate(`/product/edit/${variant.id}`)}
+                                    // 🟢 DÜZELTME: '/products/ID/edit' formatına çevirdik
+                                    onClick={() => navigate(`/products/${variant.id}/edit`)}
                                   >
                                     🖊 Düzenle
                                   </button>
