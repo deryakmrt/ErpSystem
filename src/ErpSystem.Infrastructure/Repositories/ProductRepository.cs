@@ -29,6 +29,7 @@ public class ProductRepository : IProductRepository
                 BasePrice = p.Price,
                 Unit = p.Unit,
                 IsActive = p.IsActive,
+                Category = p.Category,
                 CreatedAt = p.CreatedAt,
                 VariantCount = p.Variants.Count,
                 SkuConfig = p.SkuConfig
@@ -56,6 +57,7 @@ public class ProductRepository : IProductRepository
             BasePrice = p.Price,
             Unit = p.Unit,
             IsActive = p.IsActive,
+            Category = p.Category,
             CreatedAt = p.CreatedAt,
             VariantCount = p.Variants.Count,
             ParentId = p.ParentId, // 👈 Bunu ekledik
@@ -97,6 +99,7 @@ public class ProductRepository : IProductRepository
         Price = dto.BasePrice,
         Unit = dto.Unit,
         IsActive = dto.IsActive,
+        Category = dto.Category,
         
         // 🔴 ESKİSİ: ParentId = null
         // 🟢 YENİSİ: Gelen veriyi kullanıyoruz
@@ -151,13 +154,24 @@ public async Task<ProductDto?> UpdateAsync(int id, UpdateProductDto dto)
         product.Price = dto.BasePrice;
         product.Unit = dto.Unit;
         product.IsActive = dto.IsActive;
-        
-        // 🟢 3. Kategori Güncellemesi
-        // Boş gönderilirse (null) veritabanını bozma, doluysa güncelle
         if (dto.Category != null) 
         {
              product.Category = dto.Category;
         }
+        
+        if (dto.IsActive == false)
+        {
+            var children = await _context.Products
+                                         .Where(p => p.ParentId == id)
+                                         .ToListAsync();
+            
+            foreach (var child in children)
+            {
+                child.IsActive = false;
+            }
+        }
+        // Not: Baba Aktif olduğunda çocukları otomatik aktif YAPMAMALIYIZ. 
+        // Belki stokta olmayan özel bir varyasyon vardır, onu yanlışlıkla açmış oluruz.
 
         product.UpdatedAt = DateTime.UtcNow;
 

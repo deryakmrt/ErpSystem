@@ -10,4 +10,5 @@ public class CreateProductDto
     public bool IsActive { get; set; } = true;
     public int? ParentId { get; set; }
     public string? SkuConfig { get; set; }
+    public string? Category { get; set; }
 }

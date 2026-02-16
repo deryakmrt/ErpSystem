@@ -10,6 +10,7 @@ public class ProductDto
     public string Unit { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? Category { get; set; } 
     
     // Varyasyon sayısı (ilişkili varyasyon varsa)
     public int VariantCount { get; set; }

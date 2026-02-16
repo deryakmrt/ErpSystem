@@ -658,13 +658,40 @@ const loadExistingVariants = async () => {
                   </div>
                 )}
 
+                {/* Kategori */}
                 <div className="form-section">
-                  <h3>Kategori</h3>
-                  <select name="category" value={formData.category} onChange={handleChange}>
-                    <option value="">-- Seçiniz --</option>
-                    <option value="Aydinlatma">Aydınlatma</option>
-                    <option value="Armatur">Armatür</option>
+                  <label>Kategori</label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="form-control"
+                    // 🟢 PROFESYONEL DOKUNUŞ: Eğer varyasyonsa, kullanıcı değiştiremesin (disabled)
+                    disabled={isVariant} 
+                  >
+                    <option value="">Seçiniz</option>
+                    <option value="Armatür">Armatür</option>
+                    <option value="Aydınlatma">Aydınlatma</option>
                     <option value="Panel">Panel</option>
+                    <option value="Ampul">Ampul</option>
+                    <option value="Şerit LED">Şerit LED</option>
+                    <option value="Driver">Driver (Sürücü)</option>
+                  </select>
+                  {/* Kullanıcı bilgilendirme notu */}
+                  {isVariant && <small className="text-muted">Varyasyon kategorisi ana ürüne bağlıdır.</small>}
+                </div>
+                {/* 🟢 YENİ: Durum (Aktif/Pasif) Kutusu */}
+                <div className="form-section">
+                  <label>Durum</label>
+                  <select
+                    name="isActive"
+                    value={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'true' })}
+                    className="form-control"
+                    style={{ backgroundColor: formData.isActive ? '#e6fffa' : '#fff5f5' }} // Görsel güzellik: Aktifse yeşilimsi, Pasifse kırmızımsı
+                  >
+                    <option value="true">Aktif (Satışta)</option>
+                    <option value="false">Pasif (Satış Dışı)</option>
                   </select>
                 </div>
 
