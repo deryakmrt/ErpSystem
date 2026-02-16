@@ -37,6 +37,7 @@ public class Product
     /// Birim (Adet, Kg, Metre, vb.)
     /// </summary>
     public string Unit { get; set; } = "Adet";
+        public string Currency { get; set; } = "TL";// 🟢 YENİ: Para Birimi (Varsayılan TL)
 
     /// <summary>
     /// Birim fiyat (Decimal = ondalıklı sayı, para için ideal)

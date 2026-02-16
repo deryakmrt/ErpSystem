@@ -3,6 +3,7 @@ import { getMasterProducts, deleteProduct, getProductVariants } from '../service
 import { useNavigate } from 'react-router-dom';
 import './ProductList.css';
 
+const getSymbol = (curr) => curr === 'USD' ? '$' : curr === 'EUR' ? '€' : '₺';
 const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -127,7 +128,7 @@ const handleDelete = async (id) => {
                   </td>
                   <td><code>{product.code}</code></td>
                   <td><strong>{product.name}</strong></td>
-                  <td>{product.basePrice.toFixed(2)} ₺</td>
+                  <td>{product.basePrice?.toFixed(2)} {getSymbol(product.currency || 'TL')}</td>
                   <td>{product.unit}</td>
                   <td>
                     {product.variantCount > 0 ? (

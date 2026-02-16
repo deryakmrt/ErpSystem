@@ -7,6 +7,7 @@ namespace ErpSystem.Application.DTOs
         public string Description { get; set; } = string.Empty;
         public decimal BasePrice { get; set; }
         public string Unit { get; set; } = "Adet";
+        public string Currency { get; set; } = "TL";
         
         // 🟢 Soru işareti (?) önemli: Kategori boş olabilir demek
         public string? Category { get; set; } 

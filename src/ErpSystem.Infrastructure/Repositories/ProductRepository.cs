@@ -28,6 +28,7 @@ public class ProductRepository : IProductRepository
                 Description = p.Description,
                 BasePrice = p.Price,
                 Unit = p.Unit,
+                Currency = p.Currency,
                 IsActive = p.IsActive,
                 Category = p.Category,
                 CreatedAt = p.CreatedAt,
@@ -58,6 +59,7 @@ public class ProductRepository : IProductRepository
             Unit = p.Unit,
             IsActive = p.IsActive,
             Category = p.Category,
+            Currency = p.Currency,
             CreatedAt = p.CreatedAt,
             VariantCount = p.Variants.Count,
             ParentId = p.ParentId, // 👈 Bunu ekledik
@@ -80,6 +82,7 @@ public class ProductRepository : IProductRepository
             Description = p.Description,
             BasePrice = p.Price,
             Unit = p.Unit,
+            Currency = p.Currency,
             IsActive = p.IsActive,
             CreatedAt = p.CreatedAt,
             VariantCount = p.Variants.Count,
@@ -157,6 +160,7 @@ public async Task<ProductDto?> UpdateAsync(int id, UpdateProductDto dto)
         if (dto.Category != null) 
         {
              product.Category = dto.Category;
+             product.Currency = dto.Currency;
         }
         
         if (dto.IsActive == false)
@@ -228,7 +232,8 @@ public async Task<bool> DeleteAsync(int id)
                 Barcode = null,
                 IsActive = v.IsActive,
                 CreatedAt = v.CreatedAt,
-                ProductName = v.ParentProduct != null ? v.ParentProduct.Name : null
+                ProductName = v.ParentProduct != null ? v.ParentProduct.Name : null,
+                Currency = v.Currency
             })
             .ToListAsync();
     }

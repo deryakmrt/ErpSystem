@@ -7,6 +7,7 @@ public class CreateProductDto
     public string? Description { get; set; }
     public decimal BasePrice { get; set; }
     public string Unit { get; set; } = string.Empty;
+    public string Currency { get; set; } = "TL";
     public bool IsActive { get; set; } = true;
     public int? ParentId { get; set; }
     public string? SkuConfig { get; set; }

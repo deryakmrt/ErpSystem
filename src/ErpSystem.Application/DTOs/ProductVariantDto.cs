@@ -15,4 +15,5 @@ public class ProductVariantDto
     
     // Ana ürün bilgisi (isteğe bağlı)
     public string? ProductName { get; set; }
+    public string Currency { get; set; } = "TL";
 }

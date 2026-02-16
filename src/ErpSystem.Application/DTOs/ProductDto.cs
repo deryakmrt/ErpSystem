@@ -8,6 +8,7 @@ public class ProductDto
     public string? Description { get; set; }
     public decimal BasePrice { get; set; }
     public string Unit { get; set; } = string.Empty;
+    public string Currency { get; set; } = "TL";
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? Category { get; set; } 
