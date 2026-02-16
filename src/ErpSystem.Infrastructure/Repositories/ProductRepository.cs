@@ -28,9 +28,9 @@ public class ProductRepository : IProductRepository
                 Description = p.Description,
                 BasePrice = p.Price,
                 Unit = p.Unit,
-                Currency = p.Currency,
                 IsActive = p.IsActive,
                 Category = p.Category,
+                Currency = p.Currency,
                 CreatedAt = p.CreatedAt,
                 VariantCount = p.Variants.Count,
                 SkuConfig = p.SkuConfig
@@ -103,6 +103,7 @@ public class ProductRepository : IProductRepository
         Unit = dto.Unit,
         IsActive = dto.IsActive,
         Category = dto.Category,
+        Currency = dto.Currency,
         
         // 🔴 ESKİSİ: ParentId = null
         // 🟢 YENİSİ: Gelen veriyi kullanıyoruz
@@ -157,10 +158,15 @@ public async Task<ProductDto?> UpdateAsync(int id, UpdateProductDto dto)
         product.Price = dto.BasePrice;
         product.Unit = dto.Unit;
         product.IsActive = dto.IsActive;
+        // 🟢 DÜZELTİLMİŞ HALİ:
         if (dto.Category != null) 
         {
              product.Category = dto.Category;
-             product.Currency = dto.Currency;
+        }
+        // Para birimini her zaman güncelle (veya null değilse)
+        if (!string.IsNullOrEmpty(dto.Currency))
+        {
+            product.Currency = dto.Currency;
         }
         
         if (dto.IsActive == false)
@@ -190,6 +196,7 @@ public async Task<ProductDto?> UpdateAsync(int id, UpdateProductDto dto)
             Description = product.Description,
             BasePrice = product.Price,
             Unit = product.Unit,
+            Currency = product.Currency,
             IsActive = product.IsActive,
             CreatedAt = product.CreatedAt,
             VariantCount = await _context.Products.CountAsync(v => v.ParentId == id),
@@ -228,12 +235,12 @@ public async Task<bool> DeleteAsync(int id)
                 VariantName = v.Name,
                 Description = v.Description,
                 Price = v.Price,
+                Currency = v.Currency,
                 SKU = v.Sku,
                 Barcode = null,
                 IsActive = v.IsActive,
                 CreatedAt = v.CreatedAt,
-                ProductName = v.ParentProduct != null ? v.ParentProduct.Name : null,
-                Currency = v.Currency
+                ProductName = v.ParentProduct != null ? v.ParentProduct.Name : null
             })
             .ToListAsync();
     }
