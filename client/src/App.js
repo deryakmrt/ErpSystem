@@ -22,6 +22,8 @@ function App() {
             <Route path="/products/new" element={<ProductFormAdvanced />} />
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/products/:id/edit" element={<ProductFormAdvanced />} />
+            {/* 🟢 YENİ: Yeni varyasyon ekle → ana ürünün düzenle sayfasına git, variants sekmesi açılsın */}
+            <Route path="/products/:id/variants/new" element={<ProductFormAdvanced />} />
           </Routes>
         </main>
 
