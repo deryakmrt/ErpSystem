@@ -133,15 +133,26 @@ const loadProduct = async () => {
 
       let currentConfig = null;
       let fetchedParentName = '';
-      let inheritedCurrency = 'TL'; 
-      let inheritedUnit = 'Adet';
+      // 🟢 DÜZELTİLDİ: Başlangıç değerleri ürünün kendi değerinden geliyor
+      // Baba yoksa kendi değeri geçerli olacak
+      let inheritedCurrency = product.currency || 'TL'; 
+      let inheritedUnit = product.unit || 'Adet';
 
-      // 🟢 ADIM 1: BABA ÜRÜN KONTROLÜ (İsim ve Config için)
+      // 🟢 ADIM 1: BABA ÜRÜN KONTROLÜ (İsim, Config ve Para Birimi için)
       if (product.parentId) {
-        // Bu bir VARYASYON. Mutlaka babasını çağırıp ismini almalıyız.
+        // Bu bir VARYASYON. Mutlaka babasını çağırıp ismini ve para birimini almalıyız.
         try {
           const parentProduct = await getProductById(product.parentId);
           fetchedParentName = parentProduct.name; // ✅ Doğru Kök İsim (Örn: Canna Açelya)
+          
+          // 🟢 YENİ: Babadan para birimini ve birimi miras al
+          // Varyasyonun kendi değeri yoksa veya boşsa babadan al
+          if (!product.currency || product.currency === 'TL') {
+            inheritedCurrency = parentProduct.currency || 'TL';
+          }
+          if (!product.unit || product.unit === 'Adet') {
+            inheritedUnit = parentProduct.unit || 'Adet';
+          }
           
           // Eğer varyasyonun kendi configi yoksa babadan al (Fallback)
           if (!product.skuConfig && parentProduct.skuConfig) {
@@ -428,6 +439,9 @@ const loadExistingVariants = async () => {
       sku: wizardPreview.sku,
       name: wizardPreview.name,
       price: parseFloat(formData.price) || 0,
+      // 🟢 DÜZELTİLDİ: Ana ürünün para birimini varyasyona aktar
+      // Böylece listede € veya $ doğru gösterilir
+      currency: formData.currency,
       summary: Object.entries(wizardData).map(([k, v]) => v).join(', '),
       isActive: true,
       isExisting: false // New variant

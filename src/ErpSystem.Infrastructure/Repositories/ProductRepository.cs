@@ -236,6 +236,7 @@ public async Task<bool> DeleteAsync(int id)
                 Description = v.Description,
                 Price = v.Price,
                 Currency = v.Currency,
+                Unit = v.Unit,   // 🟢 YENİ: Birimi de gönder
                 SKU = v.Sku,
                 Barcode = null,
                 IsActive = v.IsActive,

@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById, getProductVariants, deleteProduct } from '../services/productService';
 import './ProductDetail.css';
 
+// Para birimine göre sembol döndürür
+const getSymbol = (curr) => curr === 'USD' ? '$' : curr === 'EUR' ? '€' : '₺';
+
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -17,6 +20,9 @@ const ProductDetail = () => {
   }, [id]);
 
   const loadProductData = async () => {
+    // 🟢 Koruma: id yoksa veya undefined ise API çağrısı yapma
+    if (!id || id === 'undefined') return;
+    
     try {
       setLoading(true);
       const [productData, variantsData] = await Promise.all([
@@ -97,7 +103,7 @@ const ProductDetail = () => {
           </div>
           <div className="info-item">
             <label>Birim Fiyat:</label>
-            <span className="price">{product.basePrice.toFixed(2)} ₺</span>
+            <span className="price">{product.basePrice.toFixed(2)} {getSymbol(product.currency)}</span>
           </div>
           <div className="info-item">
             <label>Birim:</label>
@@ -148,6 +154,7 @@ const ProductDetail = () => {
                   <th>Varyasyon Adı</th>
                   <th>Açıklama</th>
                   <th>Fiyat</th>
+                  <th>Birim</th>
                   <th>SKU</th>
                   <th>Durum</th>
                   <th>İşlemler</th>
@@ -159,7 +166,9 @@ const ProductDetail = () => {
                     <td><strong>{variant.variantCode}</strong></td>
                     <td>{variant.variantName}</td>
                     <td>{variant.description || '-'}</td>
-                    <td className="price">{variant.price.toFixed(2)} ₺</td>
+                    <td className="price">{variant.price.toFixed(2)} {getSymbol(variant.currency)}</td>
+                    {/* 🟢 YENİ: Birim - babadan gelir */}
+                    <td>{variant.unit || '-'}</td>
                     <td>{variant.sku || '-'}</td>
                     <td>
                       <span className={`status ${variant.isActive ? 'active' : 'inactive'}`}>
@@ -170,7 +179,7 @@ const ProductDetail = () => {
                       <div className="action-buttons">
                         <button
                           className="btn btn-sm btn-warning"
-                          onClick={() => navigate(`/products/${id}/variants/${variant.id}/edit`)}
+                          onClick={() => navigate(`/products/${variant.id}/edit`)}
                         >
                           Düzenle
                         </button>

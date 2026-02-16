@@ -178,8 +178,10 @@ const handleDelete = async (id) => {
                       <td></td>
                       <td><code className="variant-code">↳ {variant.sku}</code></td>
                       <td className="variant-name">{variant.name}</td>
-                      <td>{variant.price.toFixed(2)} ₺</td>
-                      <td>-</td>
+                      {/* 🟢 DÜZELTİLDİ: Sabit ₺ yerine babadan gelen currency kullanılıyor */}
+                      <td>{variant.price.toFixed(2)} {getSymbol(variant.currency || 'TL')}</td>
+                      {/* 🟢 YENİ: Birim - babadan gelir */}
+                      <td>{variant.unit || '-'}</td>
                       <td>
                         <small className="variant-summary">{variant.summary || '-'}</small>
                       </td>
