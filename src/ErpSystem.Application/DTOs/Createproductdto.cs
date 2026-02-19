@@ -12,4 +12,9 @@ public class CreateProductDto
     public int? ParentId { get; set; }
     public string? SkuConfig { get; set; }
     public string? Category { get; set; }
+    
+    // 🟢 YENİ ALANLAR
+    public string? UsageArea { get; set; }
+    public decimal? StockQuantity { get; set; } // 🟢 Soru işareti eklendi
+    public decimal? MinStockLevel { get; set; } // 🟢 Soru işareti eklendi
 }

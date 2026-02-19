@@ -13,6 +13,11 @@ public class ProductDto
     public DateTime CreatedAt { get; set; }
     public string? Category { get; set; } 
     
+    // 🟢 YENİ: Veritabanında olan ama kullanılmayan alanlar
+    public string? UsageArea { get; set; }
+    public decimal? StockQuantity { get; set; } // 🟢 Soru işareti eklendi
+    public decimal? MinStockLevel { get; set; } // 🟢 Soru işareti eklendi
+    
     // Varyasyon sayısı (ilişkili varyasyon varsa)
     public int VariantCount { get; set; }
     public int? ParentId { get; set; }
