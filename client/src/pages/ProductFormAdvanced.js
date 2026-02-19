@@ -281,9 +281,12 @@ const loadExistingVariants = async () => {
       const markedList = rawList.map(v => ({
         ...v,
         isExisting: true, // Bu bayrak hayat kurtarır
-        // Eğer backend 'code' gönderiyorsa onu 'sku' olarak eşle
-        sku: v.code || v.sku, 
-        price: v.basePrice || v.price
+        // 🟢 DÜZELTME: Backend veriyi 'variantCode' ve 'variantName' olarak gönderiyor.
+        // Bunları frontend'in beklediği 'sku' ve 'name' ile doğru eşleştirmeliyiz!
+        sku: v.code || v.sku || v.variantCode, 
+        name: v.name || v.variantName, // İsimlerin kaybolma sebebi buydu!
+        price: v.basePrice || v.price,
+        skuConfig: v.skuConfig // Eski tarifin ezilmemesi için önlem
       }));
       
       setVariants(markedList);
@@ -462,7 +465,10 @@ const loadExistingVariants = async () => {
       currency: formData.currency,
       summary: Object.entries(wizardData).map(([k, v]) => v).join(', '),
       isActive: true,
-      isExisting: false // New variant
+      isExisting: false, // New variant
+      // 🟢 YENİ DÜZELTME: Varyasyon oluşturulduğu andaki "SKU Tarifini" içine mühürle!
+      // Böylece ana ürünün tarifi sonradan değişse bile bu varyasyon bozulmaz.
+      skuConfig: JSON.stringify(skuRecipe) 
     };
 
     setVariants([...variants, newVariant]);
