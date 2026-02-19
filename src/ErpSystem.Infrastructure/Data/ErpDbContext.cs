@@ -26,6 +26,11 @@ public class ErpDbContext : DbContext
     public DbSet<Product> Products { get; set; } = null!;
 
     /// <summary>
+    /// Ürün Attribute tablosu (Kriterler)
+    /// </summary>
+    public DbSet<ProductAttribute> ProductAttributes { get; set; }
+
+    /// <summary>
     /// Siparişler tablosu (Header/Master)
     /// </summary>
     public DbSet<Order> Orders { get; set; } = null!;

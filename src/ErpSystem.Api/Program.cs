@@ -26,6 +26,8 @@ builder.Services.AddDbContext<ErpDbContext>(options =>
 
 // Repository Registration
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+// 👇 YENİ: Sabit Kriterler için yazdığımız depoyu da sisteme tanıtıyoruz
+builder.Services.AddScoped<IProductAttributeRepository, ProductAttributeRepository>();
 
 var app = builder.Build();
 
