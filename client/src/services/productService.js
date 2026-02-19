@@ -47,3 +47,38 @@ export const getProductVariants = async (id) => {
   const response = await api.get(`/products/${id}/variants`);
   return response.data;
 };
+// --- YENİ: SABİT KRİTER (ATTRIBUTE) API İSTEKLERİ ---
+
+// Sabit kriterleri veritabanından getir
+export const getProductAttributes = async () => {
+  const response = await api.get('/ProductAttributes');
+  return response.data;
+};
+
+// Yeni sabit kriteri veritabanına ekle
+export const createProductAttribute = async (attributeData) => {
+  const response = await api.post('/ProductAttributes', attributeData);
+  return response.data;
+};
+
+// 👇 YENİ: Sabit kriteri güncelle
+export const updateProductAttribute = async (id, attributeData) => {
+  const response = await api.get(`/ProductAttributes/${id}`, attributeData); // Not: Backend'de PutMapping yaptık
+  return response.data;
+};
+
+// Asıl güncelleme isteği (PUT)
+export const updateProductAttributePut = async (id, attributeData) => {
+  const response = await api.put(`/ProductAttributes/${id}`, attributeData);
+  return response.data;
+};
+
+// 👇 YENİ: Sabit kriteri sil (pasife çek)
+export const deleteProductAttribute = async (id) => {
+  const response = await api.delete(`/ProductAttributes/${id}`);
+  return response.data;
+};
+export const restoreProductAttribute = async (id) => {
+  const response = await api.post(`/ProductAttributes/${id}/restore`);
+  return response.data;
+};

@@ -1,0 +1,116 @@
+.attribute-mgmt-container {
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.attr-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.attr-form input {
+    padding: 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    flex: 1;
+}
+
+.btn-save {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.attr-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.attr-table th, .attr-table td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.opt-tag {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-right: 5px;
+}
+.row-passive {
+    background-color: #f8fafc;
+}
+
+.passive-badge {
+    font-size: 11px;
+    font-weight: normal;
+    background: #cbd5e1;
+    color: #475569;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 5px;
+}
+
+.opt-tag-passive {
+    display: inline-block;
+    background: #f1f5f9;
+    color: #94a3b8;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-right: 5px;
+    text-decoration: line-through;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-restore {
+    background: #059669;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.btn-restore:hover {
+    background: #047857;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.btn-icon:hover {
+    background: #e2e8f0;
+}
+
+.btn-delete:hover {
+    color: #dc2626;
+}

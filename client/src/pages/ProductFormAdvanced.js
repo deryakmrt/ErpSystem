@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { createProduct, updateProduct, getProductById, getProductVariants, deleteProduct } from '../services/productService';
+import { createProduct, updateProduct, getProductById, getProductVariants, deleteProduct, getProductAttributes, createProductAttribute } from '../services/productService';
 import './ProductFormAdvanced.css';
 
 // 👇 Helper: Seçenekten Kısaltma Kodu Üretme (SkuBuilder ile aynı mantık olmalı)
@@ -25,7 +25,7 @@ const ProductFormAdvanced = () => {
   );
   // 👇 YENİ: Bu ürün bir varyasyon mu?
   const [isVariant, setIsVariant] = useState(false);
-  
+
   // 👇 YENİ: Hafıza ve Fiyat State'leri
   const [lastWizardState, setLastWizardState] = useState({});
   const [priceWhole, setPriceWhole] = useState('');
@@ -47,32 +47,57 @@ const ProductFormAdvanced = () => {
     isActive: true
   });
 
-  // SKU Recipe (Kriter Elde)
-  const [attributePool] = useState({
-    light_color: {
-      label: 'Işık Rengi',
-      options: ['3000K (Günışığı)', '4000K (Doğal Beyaz)', '6500K (Soğuk Beyaz)']
-    },
-    ip_class: {
-      label: 'IP Sınıfı',
-      options: ['IP20', 'IP40', 'IP54', 'IP65']
-    },
-    power: {
-      label: 'Tüketim Gücü',
-      options: ['18W', '30W', '40W', '60W']
-    },
-    length: {
-      label: 'Uzunluk',
-      options: ['60cm', '90cm', '120cm', '150cm', '200cm']
-    },
-    diffuser: {
-      label: 'Difüzör Tipi',
-      options: ['Opak', 'Şeffaf', 'Buzlu']
-    }
-  });
+  // SKU Recipe (Kriter Havuzu)
+  const [attributePool, setAttributePool] = useState({});
+
+  // 🟢 YENİ: Sayfa ilk açıldığında veritabanından sabit kriterleri çeken useEffect
+  useEffect(() => {
+    const fetchAttributes = async () => {
+      try {
+        const data = await getProductAttributes();
+        const newPool = {};
+
+        // Gelen diziyi React'ın anladığı objeye (sözlüğe) çeviriyoruz
+        data.filter(attr => attr.isActive).forEach(attr => { // 🟢 Sadece aktifleri havuza al
+          newPool[attr.systemKey] = { label: attr.name, options: attr.options };
+        });
+
+        setAttributePool(newPool);
+      } catch (error) {
+        console.error('Sabit kriterler yüklenemedi:', error);
+      }
+    };
+
+    fetchAttributes();
+  }, []); // Sadece sayfa yüklenirken bir kez çalışır
 
   const [skuRecipe, setSkuRecipe] = useState([]);
   const [recipeOptions, setRecipeOptions] = useState({});
+
+  // 🟢 DÜZELTME: "Race Condition" (Yarış Durumu) Çözümü
+  // Sayfa açıldığında API'den veriler farklı hızlarda gelebilir.
+  // Havuz veya Tarif yüklendiği anda (ikisi de dolduğunda) dropdown'ları otomatik doldurur.
+  useEffect(() => {
+    if (skuRecipe.length > 0 && Object.keys(attributePool).length > 0) {
+      setRecipeOptions(prev => {
+        const updatedOptions = { ...prev };
+        skuRecipe.forEach(item => {
+          if (attributePool[item.type]) {
+            updatedOptions[item.type] = attributePool[item.type].options;
+          }
+        });
+        return updatedOptions;
+      });
+    }
+  }, [attributePool, skuRecipe]);
+
+  // 👇 YENİ: Ekstra Kriter Ekleme State'leri
+  const [customAttrName, setCustomAttrName] = useState('');
+
+  // 👇 YENİ: Sabit Kriter Ekleme State'leri
+  const [isFixedAttrFormOpen, setIsFixedAttrFormOpen] = useState(false);
+  const [fixedAttrName, setFixedAttrName] = useState('');
+  const [fixedAttrOptions, setFixedAttrOptions] = useState('');
 
   // Variants
   const [variants, setVariants] = useState([]);
@@ -89,7 +114,7 @@ const ProductFormAdvanced = () => {
     if (isEditMode) {
       // 🛑 1. HER ŞEYİ SIFIRLA (HARD RESET)
       // Sayfayı yenilemiş gibi tüm hafızayı temizliyoruz
-      setLoading(true); 
+      setLoading(true);
       setIsVariant(false);       // Varsayılan: Ana ürün
       setVariants([]);           // Eski listeyi uçur
       setWizardData({});         // Dropdownları boşalt
@@ -101,7 +126,7 @@ const ProductFormAdvanced = () => {
       setRootSkuBase('');
       // 🟢 DÜZELTİLDİ: variants/new'den gelince Varyasyon sekmesi açık kalsın
       setActiveTab(location.pathname.endsWith('/variants/new') ? 'variants' : 'general');
-      
+
       // Formun içini de boşalt ki eski yazılar (örn: Ana Ürün İsmi) kalmasın
       setFormData({
         sku: '',
@@ -122,17 +147,17 @@ const ProductFormAdvanced = () => {
     }
   }, [id]);
 
-const loadProduct = async () => {
-  // 🟢 Koruma: id yoksa veya undefined ise API çağrısı yapma
-  if (!id || id === 'undefined') return;
-  
-  // 👇 YENİ: Yüklemeye başlarken varyasyon listesini ve state'i temizle
-    setVariants([]); 
+  const loadProduct = async () => {
+    // 🟢 Koruma: id yoksa veya undefined ise API çağrısı yapma
+    if (!id || id === 'undefined') return;
+
+    // 👇 YENİ: Yüklemeye başlarken varyasyon listesini ve state'i temizle
+    setVariants([]);
     setIsVariant(false);
     try {
       setLoading(true);
       const product = await getProductById(id);
-      
+
       // Fiyat Ayrıştırma
       const priceStr = (product.basePrice || 0).toFixed(2);
       const [whole, decimal] = priceStr.split('.');
@@ -143,7 +168,7 @@ const loadProduct = async () => {
       let fetchedParentName = '';
       // 🟢 DÜZELTİLDİ: Başlangıç değerleri ürünün kendi değerinden geliyor
       // Baba yoksa kendi değeri geçerli olacak
-      let inheritedCurrency = product.currency || 'TL'; 
+      let inheritedCurrency = product.currency || 'TL';
       let inheritedUnit = product.unit || 'Adet';
 
       // 🟢 ADIM 1: BABA ÜRÜN KONTROLÜ (İsim, Config ve Para Birimi için)
@@ -152,7 +177,7 @@ const loadProduct = async () => {
         try {
           const parentProduct = await getProductById(product.parentId);
           fetchedParentName = parentProduct.name; // ✅ Doğru Kök İsim (Örn: Canna Açelya)
-          
+
           // 🟢 YENİ: Babadan para birimini ve birimi miras al
           // Varyasyonun kendi değeri yoksa veya boşsa babadan al
           if (!product.currency || product.currency === 'TL') {
@@ -161,10 +186,10 @@ const loadProduct = async () => {
           if (!product.unit || product.unit === 'Adet') {
             inheritedUnit = parentProduct.unit || 'Adet';
           }
-          
+
           // Eğer varyasyonun kendi configi yoksa babadan al (Fallback)
           if (!product.skuConfig && parentProduct.skuConfig) {
-             currentConfig = JSON.parse(parentProduct.skuConfig);
+            currentConfig = JSON.parse(parentProduct.skuConfig);
           }
         } catch (err) {
           console.error("Baba ürün bulunamadı:", err);
@@ -183,7 +208,7 @@ const loadProduct = async () => {
       // 🟢 ADIM 3: STATE GÜNCELLEME
       if (currentConfig) {
         setSkuRecipe(currentConfig);
-        
+
         // Dropdown seçeneklerini yükle
         const newOptions = {};
         currentConfig.forEach(item => {
@@ -196,45 +221,45 @@ const loadProduct = async () => {
         // VARYASYON İSE: Dropdownları Doldur
         if (product.parentId) {
           const fullSku = product.code || '';
-          const parts = fullSku.split('-'); 
-          
+          const parts = fullSku.split('-');
+
           // Tarif listesi (Örn: Işık Rengi, IP Sınıfı...)
-          const configItems = [...currentConfig]; 
+          const configItems = [...currentConfig];
           const parsedData = {};
 
           // SKU'nun sonundan başlayarak, tarifteki özellik sayısı kadar geriye git
           // Örn: SKU = RN-CNN-SR-30-IP65 ve Tarif = [Renk, IP] ise
           // Son parça (IP65) -> IP Sınıfı
           // Ondan önceki (30) -> Işık Rengi
-          
+
           const suffixCount = configItems.length;
           // Eğer SKU parçaları tariften kısaysa işlem yapma (Hata önleyici)
           if (parts.length > suffixCount) {
-             const suffixParts = parts.slice(-suffixCount); // Son N parçayı al
+            const suffixParts = parts.slice(-suffixCount); // Son N parçayı al
 
-             configItems.forEach((item, index) => {
-                const partCode = suffixParts[index]; // Sırayla eşleşir (Çünkü config ve suffix aynı sırada)
-                const attr = attributePool[item.type];
-                
-                if (attr && partCode) {
-                   // Dropdown seçenekleri içinde bu kodu üreten var mı diye bak
-                   const matchingOption = attr.options.find(opt => generateCode(item.type, opt) === partCode);
-                   if (matchingOption) {
-                      parsedData[item.type] = matchingOption;
-                   }
+            configItems.forEach((item, index) => {
+              const partCode = suffixParts[index]; // Sırayla eşleşir (Çünkü config ve suffix aynı sırada)
+              const attr = attributePool[item.type];
+
+              if (attr && partCode) {
+                // Dropdown seçenekleri içinde bu kodu üreten var mı diye bak
+                const matchingOption = attr.options.find(opt => generateCode(item.type, opt) === partCode);
+                if (matchingOption) {
+                  parsedData[item.type] = matchingOption;
                 }
-             });
+              }
+            });
           }
-          
+
           setWizardData(parsedData);
 
           // Kök SKU ve Kök İsim Ayarı
           // Varyasyon parçalarını at, geriye kalanı Kök SKU yap
           const rootParts = parts.slice(0, parts.length - suffixCount);
           setRootSkuBase(rootParts.join('-'));
-          
+
           // 🟢 Kök İsim Hafızası (Artık temiz parent ismi var)
-          setRootNameBase(fetchedParentName); 
+          setRootNameBase(fetchedParentName);
         }
       }
 
@@ -243,14 +268,14 @@ const loadProduct = async () => {
         name: product.name || '',
         description: product.description || '',
         price: (product.basePrice || 0).toString(),
-        
+
         // 🟢 MANTIK: Ürünün kendi birimi varsa (veya doluysa) onu kullan.
         // Boşsa veya null ise, babadan geleni (mirası) kullan.
-        unit: product.unit || inheritedUnit, 
-        
+        unit: product.unit || inheritedUnit,
+
         // 🟢 MANTIK: Ürünün kendi parası varsa onu kullan. Yoksa babadan geleni.
         currency: product.currency || inheritedCurrency,
-        
+
         category: product.category || '',
         image: null,
         imagePreview: product.imageUrl || null,
@@ -267,15 +292,15 @@ const loadProduct = async () => {
       setLoading(false);
     }
   };
-const loadExistingVariants = async () => {
+  const loadExistingVariants = async () => {
     // Eğer bu bir varyasyon ise, kendi kardeşlerini değil, babasının çocuklarını getirmeli (isteğe bağlı)
     // Ama şimdilik sadece "Ana Ürün"de çalışsın istiyoruz.
-    if (!id || isVariant) return; 
+    if (!id || isVariant) return;
 
     try {
       const data = await getProductVariants(id);
       const rawList = Array.isArray(data) ? data : (data.data || []);
-      
+
       // 🟢 ÖNEMLİ: Gelenlerin veritabanında var olduğunu işaretle (isExisting: true)
       // Böylece kaydederken tekrar oluşturmaya çalışmayız.
       const markedList = rawList.map(v => ({
@@ -283,20 +308,20 @@ const loadExistingVariants = async () => {
         isExisting: true, // Bu bayrak hayat kurtarır
         // 🟢 DÜZELTME: Backend veriyi 'variantCode' ve 'variantName' olarak gönderiyor.
         // Bunları frontend'in beklediği 'sku' ve 'name' ile doğru eşleştirmeliyiz!
-        sku: v.code || v.sku || v.variantCode, 
+        sku: v.code || v.sku || v.variantCode,
         name: v.name || v.variantName, // İsimlerin kaybolma sebebi buydu!
         price: v.basePrice || v.price,
         skuConfig: v.skuConfig // Eski tarifin ezilmemesi için önlem
       }));
-      
+
       setVariants(markedList);
-      
+
       // 🟢 DÜZELTİLDİ: markedList kullanıyoruz
       if (markedList.length > 0) {
         // Eğer varyasyon varsa, sonuncusunun özelliklerini hafızaya atma mantığı (varsa) buradadır
       }
     } catch (error) {
-       console.error("Varyasyonlar yüklenemedi:", error);
+      console.error("Varyasyonlar yüklenemedi:", error);
     }
   };
 
@@ -327,6 +352,63 @@ const loadExistingVariants = async () => {
 
   // ========== SKU RECIPE MANAGEMENT ==========
 
+  // 👇 YENİ: Serbest Yazı (Input) İçin Kriter Ekleme
+  const addCustomAttribute = () => {
+    if (!customAttrName.trim()) {
+      alert('Lütfen eklenecek kriterin adını girin (Örn: Renk).');
+      return;
+    }
+
+    const customKey = `custom_${Date.now()}`;
+    const label = customAttrName.trim();
+
+    // Sadece tarife (Recipe) özel bir işaretle (isCustom: true) ekliyoruz!
+    // Sabit havuza EKLEMİYORUZ.
+    setSkuRecipe([...skuRecipe, { type: customKey, label: label, isCustom: true }]);
+
+    setCustomAttrName('');
+  };
+
+  // 👇 YENİ: Ana Havuza Sabit Kriter Ekleme Fonksiyonu (Veritabanı Entegrasyonlu)
+  const addFixedAttribute = async () => {
+    if (!fixedAttrName.trim() || !fixedAttrOptions.trim()) {
+      alert('Lütfen kriter adını ve değerlerini (virgülle ayırarak) girin.');
+      return;
+    }
+
+    const newKey = `global_${Date.now()}`;
+    const optionsList = fixedAttrOptions.split(',').map(s => s.trim()).filter(Boolean);
+
+    try {
+      setLoading(true); // Yükleniyor animasyonunu aç
+
+      // 1. Veritabanına (API) kaydet
+      await createProductAttribute({
+        name: fixedAttrName.trim(),
+        options: optionsList,
+        systemKey: newKey
+      });
+
+      // 2. Başarılı olursa ekrandaki havuza da ekle
+      setAttributePool(prev => ({
+        ...prev,
+        [newKey]: { label: fixedAttrName.trim(), options: optionsList }
+      }));
+
+      // Formu temizle ve kapat
+      setFixedAttrName('');
+      setFixedAttrOptions('');
+      setIsFixedAttrFormOpen(false);
+
+      alert(`✅ "${fixedAttrName.trim()}" veritabanına kalıcı olarak eklendi!`);
+    } catch (err) {
+      console.error("Kriter kaydedilirken hata:", err);
+      alert("Hata: Kriter veritabanına kaydedilemedi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addToRecipe = (attrType) => {
     if (skuRecipe.find(r => r.type === attrType)) {
       alert('Bu özellik zaten eklenmiş!');
@@ -334,9 +416,9 @@ const loadExistingVariants = async () => {
     }
 
     const attr = attributePool[attrType];
-    setSkuRecipe([...skuRecipe, { 
-      type: attrType, 
-      label: attr.label 
+    setSkuRecipe([...skuRecipe, {
+      type: attrType,
+      label: attr.label
     }]);
 
     // Initialize options for this attribute
@@ -348,7 +430,7 @@ const loadExistingVariants = async () => {
 
   const removeFromRecipe = (attrType) => {
     setSkuRecipe(skuRecipe.filter(r => r.type !== attrType));
-    
+
     // Remove options
     const newOptions = { ...recipeOptions };
     delete newOptions[attrType];
@@ -380,9 +462,9 @@ const loadExistingVariants = async () => {
   const openWizard = () => {
     setWizardData(lastWizardState || {}); // Hafızadaki son seçimi getir
     setManualCode('');
-    setWizardPreview({ 
-      sku: formData.sku, 
-      name: formData.name 
+    setWizardPreview({
+      sku: formData.sku,
+      name: formData.name
     });
     setWizardOpen(true);
   };
@@ -468,7 +550,7 @@ const loadExistingVariants = async () => {
       isExisting: false, // New variant
       // 🟢 YENİ DÜZELTME: Varyasyon oluşturulduğu andaki "SKU Tarifini" içine mühürle!
       // Böylece ana ürünün tarifi sonradan değişse bile bu varyasyon bozulmaz.
-      skuConfig: JSON.stringify(skuRecipe) 
+      skuConfig: JSON.stringify(skuRecipe)
     };
 
     setVariants([...variants, newVariant]);
@@ -504,16 +586,16 @@ const loadExistingVariants = async () => {
   // ========== SUBMIT ==========
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // 1. Fiyatı Hesapla
     const finalPrice = parseFloat(`${priceWhole || '0'}.${priceDecimal || '00'}`);
-    
+
     // 🟢 YENİ: Fiyat 0'dan küçük olamaz
     if (isNaN(finalPrice) || finalPrice < 0) {
       setError('Birim fiyat 0 veya daha büyük bir değer olmalıdır!');
       return;
     }
-    
+
     if (!formData.sku || !formData.name) {
       setError('Lütfen zorunlu alanları doldurun!');
       return;
@@ -529,7 +611,7 @@ const loadExistingVariants = async () => {
         code: formData.sku,
         name: formData.name,
         description: formData.description || '',
-        basePrice: finalPrice, 
+        basePrice: finalPrice,
         unit: formData.unit,
         currency: formData.currency,
         category: formData.category || '',
@@ -544,7 +626,7 @@ const loadExistingVariants = async () => {
       if (isEditMode) {
         // A) Ana Ürünü Güncelle
         await updateProduct(id, productData);
-        
+
         // 🟢 KRİTİK DÜZELTME BURADA: 
         // Edit modunda 'createdProduct' boş kaldığı için hata alıyordun.
         // Güncellediğimiz ürünün ID'sini değişkene atıyoruz ki aşağıda kullanabilelim.
@@ -561,58 +643,63 @@ const loadExistingVariants = async () => {
               currency: formData.currency,
               category: formData.category,
               isActive: variant.isActive,
-              parentId: createdProduct.id, 
+              parentId: createdProduct.id,
               skuConfig: variant.skuConfig || null
             };
-            
+
             // 🟢 DÜZELTME BURADA: "temp-" kontrolünü ekledik!
             // ID string ise (temp-...) VEYA sayı ise ve 1'den küçükse bu YENİ bir kayıttır.
-            const isNewVariant = 
-                (typeof variant.id === 'string' && variant.id.startsWith('temp')) || 
-                (typeof variant.id === 'number' && variant.id < 1);
+            const isNewVariant =
+              (typeof variant.id === 'string' && variant.id.startsWith('temp')) ||
+              (typeof variant.id === 'number' && variant.id < 1);
 
-            if (isNewVariant) { 
-                // Yeni Kayıt: ID gönderme, Backend yeni ID verecek
-                await createProduct(variantData);
+            if (isNewVariant) {
+              // Yeni Kayıt: ID gönderme, Backend yeni ID verecek
+              await createProduct(variantData);
             } else {
-                // Eski Kayıt: ID ile güncelle
-                await updateProduct(variant.id, { ...variantData, id: variant.id });
+              // Eski Kayıt: ID ile güncelle
+              await updateProduct(variant.id, { ...variantData, id: variant.id });
             }
           }
         } else {
-            alert('✅ Varyasyon başarıyla güncellendi!');
+          alert('✅ Varyasyon başarıyla güncellendi!');
         }
-        
-        navigate('/'); 
+
+        navigate('/');
 
       } else {
         // --- YENİ KAYIT MODU ---
         createdProduct = await createProduct(productData); // Burada zaten API'den dönen cevabı alıyorduk, sorun yoktu.
-        
+
         if (variants.length > 0) {
           for (const variant of variants) {
             const variantData = {
               code: variant.sku,
               name: variant.name,
               basePrice: variant.price,
-              
+
               unit: formData.unit,
               currency: formData.currency,
-              
+
               category: formData.category,
               isActive: variant.isActive,
-              parentId: createdProduct.id, 
+              parentId: createdProduct.id,
               skuConfig: variant.skuConfig || null
             };
-            
-            if (typeof variant.id === 'number' && variant.id < 1) { 
-                await createProduct(variantData);
+
+            // 🟢 DÜZELTME: Yeni ürün modunda da "temp-" kontrolünü ekledik!
+            const isNewVariant =
+              (typeof variant.id === 'string' && variant.id.startsWith('temp')) ||
+              (typeof variant.id === 'number' && variant.id < 1);
+
+            if (isNewVariant) {
+              await createProduct(variantData);
             } else {
-                await updateProduct(variant.id, { ...variantData, id: variant.id });
+              await updateProduct(variant.id, { ...variantData, id: variant.id });
             }
           }
         }
-        
+
         alert('✅ Ürün başarıyla eklendi!');
         navigate('/');
       }
@@ -636,7 +723,7 @@ const loadExistingVariants = async () => {
         <div>
           <h1>
             {/* 👇 YENİ: Başlığın yanına etiket */}
-            {isVariant ? <span style={{color:'orange', fontSize:'0.6em', border:'1px solid orange', padding:'2px 5px', borderRadius:'4px', marginRight:'10px', verticalAlign:'middle'}}>VARYASYON</span> : null}
+            {isVariant ? <span style={{ color: 'orange', fontSize: '0.6em', border: '1px solid orange', padding: '2px 5px', borderRadius: '4px', marginRight: '10px', verticalAlign: 'middle' }}>VARYASYON</span> : null}
             Ürün Düzenle: {formData.name || 'Yeni Ürün'}
           </h1>
           <p className="subtitle">Gelişmiş ürün yapılandırıcı</p>
@@ -662,7 +749,7 @@ const loadExistingVariants = async () => {
         >
           🎨 Genel Bilgiler
         </button>
-        
+
         {/* 👇 YENİ: Sadece varyasyon DEĞİLSE bu sekmeyi göster */}
         {/* 👇 Varyasyon ise bu butonu gizle */}
         {!isVariant && (
@@ -699,11 +786,11 @@ const loadExistingVariants = async () => {
                 {isVariant ? (
                   /* VARYASYON DÜZENLEME MODU (Dropdownlar) */
                   <div className="form-section sku-edit-section">
-                    <h3 style={{color:'#d97706'}}>
+                    <h3 style={{ color: '#d97706' }}>
                       {isVariant ? '🔧 Seçili Özellikler (Tarif)' : '🔧 Varyasyon Yapılandırma'}
                     </h3>
                     {/* Varyasyon ise, hangi özelliklerin seçildiğini gösteren dinamik form */}
-                    <div className="wizard-form" style={{gridTemplateColumns: '1fr', gap:'10px', marginTop:'10px'}}>
+                    <div className="wizard-form" style={{ gridTemplateColumns: '1fr', gap: '10px', marginTop: '10px' }}>
                       {skuRecipe.map(item => (
                         <div key={item.type} className="wizard-field">
                           <label>{item.label}</label>
@@ -712,11 +799,11 @@ const loadExistingVariants = async () => {
                             onChange={(e) => {
                               const newData = { ...wizardData, [item.type]: e.target.value };
                               setWizardData(newData);
-                              
+
                               // Anlık SKU ve İsim Güncelleme
                               let newSku = rootSkuBase;
                               let newNameSuffix = ''; // 🟢 İsim ekleri
-                              
+
                               skuRecipe.forEach(r => {
                                 const val = (r.type === item.type) ? e.target.value : newData[r.type];
                                 if (val) {
@@ -724,7 +811,7 @@ const loadExistingVariants = async () => {
                                   newNameSuffix += ` ${val}`; // 🟢 İsim parçası ekle (Örn: " 60cm")
                                 }
                               });
-                              
+
                               setFormData(prev => ({
                                 ...prev,
                                 sku: newSku,
@@ -741,9 +828,9 @@ const loadExistingVariants = async () => {
                         </div>
                       ))}
                     </div>
-                    <div className="sku-preview-box" style={{marginTop:'10px', padding:'10px', background:'#fffbeb', border:'1px solid #fcd34d', borderRadius:'6px'}}>
-                      <small style={{display:'block', color:'#92400e', fontWeight:'bold'}}>GÜNCEL SKU:</small>
-                      <code style={{fontSize:'14px', color:'#b45309'}}>{formData.sku}</code>
+                    <div className="sku-preview-box" style={{ marginTop: '10px', padding: '10px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '6px' }}>
+                      <small style={{ display: 'block', color: '#92400e', fontWeight: 'bold' }}>GÜNCEL SKU:</small>
+                      <code style={{ fontSize: '14px', color: '#b45309' }}>{formData.sku}</code>
                     </div>
                   </div>
                 ) : (
@@ -771,7 +858,7 @@ const loadExistingVariants = async () => {
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="form-control"
                     // 🟢 PROFESYONEL DOKUNUŞ: Eğer varyasyonsa, kullanıcı değiştiremesin (disabled)
-                    disabled={isVariant} 
+                    disabled={isVariant}
                   >
                     <option value="">Seçiniz</option>
                     <option value="Armatür">Armatür</option>
@@ -807,19 +894,85 @@ const loadExistingVariants = async () => {
                   <div className="recipe-builder">
                     <div className="recipe-pool">
                       <h4>➕ Kriter Ekle</h4>
-                      <select 
+                      <select
                         onChange={(e) => {
-                          if (e.target.value) {
-                            addToRecipe(e.target.value);
+                          const val = e.target.value;
+                          if (val === 'ADD_NEW_FIXED') {
+                            setIsFixedAttrFormOpen(true);
+                            e.target.value = ''; // Seçimi sıfırla
+                          } else if (val) {
+                            addToRecipe(val);
                             e.target.value = '';
                           }
                         }}
                       >
-                        <option value="">Tüketim Gücü</option>
+                        <option value="">Seçiniz...</option>
                         {Object.entries(attributePool).map(([key, attr]) => (
                           <option key={key} value={key}>{attr.label}</option>
                         ))}
+                        <option disabled>──────────</option>
+                        <option value="ADD_NEW_FIXED">⚙️ Yeni Sabit Kriter Oluştur...</option>
                       </select>
+
+                      {/* 👇 YENİ: Sabit Kriter Ekleme Formu (Sadece tıklandığında açılır) */}
+                      {isFixedAttrFormOpen && (
+                        <div className="fixed-attribute-adder" style={{ marginTop: '15px', padding: '10px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px' }}>
+                          <h5 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#166534' }}>⚙️ Sabit Kriter Oluştur</h5>
+                          <input
+                            type="text"
+                            placeholder="Kriter Adı (Örn: Gövde Malzemesi)"
+                            className="form-control"
+                            value={fixedAttrName}
+                            onChange={(e) => setFixedAttrName(e.target.value)}
+                            style={{ marginBottom: '5px', fontSize: '13px' }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Değerler (Virgülle: Alüminyum, Plastik)"
+                            className="form-control"
+                            value={fixedAttrOptions}
+                            onChange={(e) => setFixedAttrOptions(e.target.value)}
+                            style={{ marginBottom: '5px', fontSize: '13px' }}
+                          />
+                          <div style={{ display: 'flex', gap: '5px' }}>
+                            <button
+                              type="button"
+                              onClick={addFixedAttribute}
+                              style={{ flex: 1, padding: '5px', background: '#22c55e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}
+                            >
+                              💾 Havuza Ekle
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsFixedAttrFormOpen(false)}
+                              style={{ padding: '5px 10px', background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
+                            >
+                              İptal
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 👇 YENİ: Ekstra Kriter Ekleme Alanı (Sadece İsim) */}
+                      <div className="custom-attribute-adder" style={{ marginTop: '15px', padding: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '6px' }}>
+                        <h5 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#475569' }}>✨ Serbest Kriter Ekle</h5>
+                        <p style={{ fontSize: '11px', color: '#64748b', marginTop: 0, marginBottom: '8px' }}>Sadece isim girin, değerini varyasyon oluştururken elle yazacaksınız.</p>
+                        <input
+                          type="text"
+                          placeholder="Kriter Adı (Örn: Renk)"
+                          className="form-control"
+                          value={customAttrName}
+                          onChange={(e) => setCustomAttrName(e.target.value)}
+                          style={{ marginBottom: '5px', fontSize: '13px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={addCustomAttribute}
+                          style={{ width: '100%', padding: '5px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}
+                        >
+                          ➕ Tarife Ekle
+                        </button>
+                      </div>
                     </div>
 
                     <div className="recipe-list">
@@ -831,7 +984,9 @@ const loadExistingVariants = async () => {
                           {skuRecipe.map((item, index) => (
                             <li key={item.type}>
                               <span className="recipe-num">{index + 1}</span>
-                              <span className="recipe-label">{item.label}</span>
+                              <span className="recipe-label">
+                                {item.isCustom ? `✨ ${item.label} (Serbest)` : item.label}
+                              </span>
                               <div className="recipe-actions">
                                 <button type="button" onClick={() => moveRecipeItem(index, -1)} disabled={index === 0}>↑</button>
                                 <button type="button" onClick={() => moveRecipeItem(index, 1)} disabled={index === skuRecipe.length - 1}>↓</button>
@@ -865,7 +1020,7 @@ const loadExistingVariants = async () => {
                     {formData.imagePreview ? (
                       <div className="image-preview">
                         <img src={formData.imagePreview} alt="Preview" />
-                        <button type="button" className="btn-remove-image" onClick={() => setFormData(prev => ({...prev, image: null, imagePreview: null}))}>
+                        <button type="button" className="btn-remove-image" onClick={() => setFormData(prev => ({ ...prev, image: null, imagePreview: null }))}>
                           🗑️
                         </button>
                       </div>
@@ -876,7 +1031,7 @@ const loadExistingVariants = async () => {
                           accept="image/*"
                           onChange={handleImageChange}
                           id="imageInput"
-                          style={{display: 'none'}}
+                          style={{ display: 'none' }}
                         />
                         <label htmlFor="imageInput" className="upload-label">
                           <span>📁 Dosya Seç</span>
@@ -931,7 +1086,7 @@ const loadExistingVariants = async () => {
                       }}
                       style={{ width: '50px' }}
                     />
-                    
+
                     {/* 🟢 YENİ: Para Birimi Seçimi */}
                     <select
                       className="form-control"
@@ -945,7 +1100,7 @@ const loadExistingVariants = async () => {
                     </select>
                   </div>
                 </div>
-                
+
                 <div className="form-row">
                   <div className="form-section">
                     <h3>Birim</h3>
@@ -980,16 +1135,27 @@ const loadExistingVariants = async () => {
                   <div className="wizard-form">
                     {skuRecipe.map(item => (
                       <div key={item.type} className="wizard-field">
-                        <label>{item.label}</label>
-                        <select
-                          value={wizardData[item.type] || ''}
-                          onChange={(e) => handleWizardChange(item.type, e.target.value)}
-                        >
-                          <option value="">Seçiniz...</option>
-                          {(recipeOptions[item.type] || []).map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
+                        <label>{item.isCustom ? `✨ ${item.label}` : item.label}</label>
+                        {item.isCustom ? (
+                          /* Eğer özel eklendiyse Serbest Metin Kutusu (Input) çıkar */
+                          <input
+                            type="text"
+                            value={wizardData[item.type] || ''}
+                            onChange={(e) => handleWizardChange(item.type, e.target.value)}
+                            placeholder={`${item.label} girin (Örn: Mavi)`}
+                          />
+                        ) : (
+                          /* Değilse normal Dropdown çıkar */
+                          <select
+                            value={wizardData[item.type] || ''}
+                            onChange={(e) => handleWizardChange(item.type, e.target.value)}
+                          >
+                            <option value="">Seçiniz...</option>
+                            {(recipeOptions[item.type] || []).map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        )}
                       </div>
                     ))}
 
@@ -1051,17 +1217,17 @@ const loadExistingVariants = async () => {
                               <td>{variant.price.toFixed(2)} {getSymbol(variant.currency || 'TL')}</td>
                               <td>
                                 <div className="action-btns">
-                                  <button 
-                                    type="button" 
-                                    className="btn-edit" 
+                                  <button
+                                    type="button"
+                                    className="btn-edit"
                                     // 🟢 DÜZELTME: '/products/ID/edit' formatına çevirdik
                                     onClick={() => navigate(`/products/${variant.id}/edit`)}
                                   >
                                     🖊 Düzenle
                                   </button>
-                                  <button 
-                                    type="button" 
-                                    className="btn-delete" 
+                                  <button
+                                    type="button"
+                                    className="btn-delete"
                                     onClick={() => removeVariant(variant.id)}
                                   >
                                     🗑 Sil

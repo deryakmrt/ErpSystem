@@ -1,8 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ProductList from './pages/ProductList';
-import ProductFormAdvanced from './pages/ProductFormAdvanced';
 import ProductDetail from './pages/ProductDetail';
+import ProductFormAdvanced from './pages/ProductFormAdvanced';
+import AttributeManagement from './pages/AttributeManagement'; // 🟢 YENİ: Kriter Yönetim Sayfası
 import './App.css';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
             <Route path="/products/new" element={<ProductFormAdvanced />} />
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/products/:id/edit" element={<ProductFormAdvanced />} />
+            <Route path="/settings/attributes" element={<AttributeManagement />} /> {/* 🟢 YENİ: Ayarlar Rotası */}
             {/* 🟢 YENİ: Yeni varyasyon ekle → ana ürünün düzenle sayfasına git, variants sekmesi açılsın */}
             <Route path="/products/:id/variants/new" element={<ProductFormAdvanced />} />
           </Routes>
