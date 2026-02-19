@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { createProduct, updateProduct, getProductById, getProductVariants, deleteProduct } from '../services/productService';
 import './ProductFormAdvanced.css';
 
@@ -15,10 +15,14 @@ const getSymbol = (curr) => curr === 'USD' ? '$' : curr === 'EUR' ? '€' : '₺
 const ProductFormAdvanced = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const isEditMode = Boolean(id);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState('general');
+  // 🟢 YENİ: Eğer URL /variants/new ile bitiyorsa direkt Varyasyon Sihirbazı sekmesini aç
+  const [activeTab, setActiveTab] = useState(
+    location.pathname.endsWith('/variants/new') ? 'variants' : 'general'
+  );
   // 👇 YENİ: Bu ürün bir varyasyon mu?
   const [isVariant, setIsVariant] = useState(false);
   
@@ -95,7 +99,8 @@ const ProductFormAdvanced = () => {
       setPriceDecimal('');
       setRootNameBase('');       // İsim hafızasını sil
       setRootSkuBase('');
-      setActiveTab('general');   // İlk sekmeye dön
+      // 🟢 DÜZELTİLDİ: variants/new'den gelince Varyasyon sekmesi açık kalsın
+      setActiveTab(location.pathname.endsWith('/variants/new') ? 'variants' : 'general');
       
       // Formun içini de boşalt ki eski yazılar (örn: Ana Ürün İsmi) kalmasın
       setFormData({
@@ -118,6 +123,9 @@ const ProductFormAdvanced = () => {
   }, [id]);
 
 const loadProduct = async () => {
+  // 🟢 Koruma: id yoksa veya undefined ise API çağrısı yapma
+  if (!id || id === 'undefined') return;
+  
   // 👇 YENİ: Yüklemeye başlarken varyasyon listesini ve state'i temizle
     setVariants([]); 
     setIsVariant(false);
@@ -295,6 +303,12 @@ const loadExistingVariants = async () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    // 🟢 YENİ: Yeni ürün modunda SKU veya isim değişince kök değerleri de güncelle
+    // Böylece wizard preview doğru kökten üretilir
+    if (!isEditMode) {
+      if (name === 'sku') setRootSkuBase(value);
+      if (name === 'name') setRootNameBase(value);
+    }
   };
 
   const handleImageChange = (e) => {
@@ -377,8 +391,12 @@ const loadExistingVariants = async () => {
   };
 
   const updateWizardPreview = (data) => {
-    let sku = formData.sku;
-    let name = formData.name;
+    // 🟢 DÜZELTİLDİ: formData.sku/name yerine kök değerleri kullan
+    // rootSkuBase: Ana ürünün kök SKU'su (Örn: "RN-BMB R")
+    // rootNameBase: Ana ürünün adı (Örn: "Bambu R Aydınlatma Direği")
+    // Eğer kök değerler boşsa (yeni ürün oluşturulurken) formData'ya düş
+    let sku = rootSkuBase || formData.sku;
+    let name = rootNameBase || formData.name;
 
     skuRecipe.forEach(item => {
       const value = data[item.type];
@@ -451,8 +469,29 @@ const loadExistingVariants = async () => {
     setWizardOpen(false);
   };
 
-  const removeVariant = (variantId) => {
+  const removeVariant = async (variantId) => {
     if (!window.confirm('Bu varyasyonu silmek istediğinize emin misiniz?')) return;
+
+    const variantToDelete = variants.find(v => v.id === variantId);
+
+    // Eğer bu varyasyon daha önceden veritabanına kaydedilmişse (isExisting), önce API'den sil!
+    if (variantToDelete && variantToDelete.isExisting) {
+      try {
+        setLoading(true);
+        await deleteProduct(variantId);
+        // Silme başarılı olursa bilgi verebiliriz (istersen alert'i kaldırabilirsin)
+        console.log('Varyasyon veritabanından başarıyla silindi.');
+      } catch (err) {
+        console.error("Varyasyon silinirken hata oluştu:", err);
+        alert('Hata: Varyasyon silinemedi! ' + (err.response?.data?.message || err.message));
+        setLoading(false);
+        return; // İşlem başarısız olursa state'i güncelleme (ekrandan kaybolmasın)
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // İşlem başarılıysa veya zaten sadece eklenen geçici (temp) bir varyasyonsa ekrandan kaldır:
     setVariants(variants.filter(v => v.id !== variantId));
   };
 
@@ -461,7 +500,13 @@ const loadExistingVariants = async () => {
     e.preventDefault();
     
     // 1. Fiyatı Hesapla
-    const finalPrice = parseFloat(`${priceWhole}.${priceDecimal || '00'}`);
+    const finalPrice = parseFloat(`${priceWhole || '0'}.${priceDecimal || '00'}`);
+    
+    // 🟢 YENİ: Fiyat 0'dan küçük olamaz
+    if (isNaN(finalPrice) || finalPrice < 0) {
+      setError('Birim fiyat 0 veya daha büyük bir değer olmalıdır!');
+      return;
+    }
     
     if (!formData.sku || !formData.name) {
       setError('Lütfen zorunlu alanları doldurun!');
@@ -842,21 +887,42 @@ const loadExistingVariants = async () => {
                   <label>Birim Fiyat</label>
                   <div className="price-input-group" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <input
-                      type="number"
+                      type="text"
                       placeholder="0"
                       className="form-control price-whole"
                       value={priceWhole}
-                      onChange={(e) => setPriceWhole(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        // Sadece rakam kabul et (nokta, virgül, eksi işareti YOK)
+                        if (/^\d*$/.test(val)) {
+                          setPriceWhole(val);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // Alan boş bırakılırsa 0 yaz
+                        if (e.target.value === '') setPriceWhole('0');
+                      }}
                       style={{ width: '80px', textAlign: 'right' }}
                     />
                     <span className="currency-sep">,</span>
                     <input
-                      type="number"
+                      type="text"
                       placeholder="00"
                       className="form-control price-decimal"
                       value={priceDecimal}
-                      onChange={(e) => setPriceDecimal(e.target.value)}
-                      maxLength="2"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        // Sadece rakam, max 2 karakter, nokta/virgül YOK
+                        if (/^\d{0,2}$/.test(val)) {
+                          setPriceDecimal(val);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // Alan boş bırakılırsa 00 yaz
+                        if (e.target.value === '') setPriceDecimal('00');
+                        // 1 rakam girilirse başına 0 ekle: "5" → "05"
+                        if (e.target.value.length === 1) setPriceDecimal('0' + e.target.value);
+                      }}
                       style={{ width: '50px' }}
                     />
                     
